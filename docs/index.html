@@ -128,8 +128,8 @@
           <p id="article-caption" class="article-caption" hidden></p>
         </header>
 
-        <div class="reader-controls" aria-label="条文の操作">
-          <div class="control-row voice-controls">
+        <div class="reader-controls" role="group" aria-label="条文の操作">
+          <div class="control-row voice-controls" role="group" aria-label="読み上げ">
             <button type="button" class="control control-dark" id="read-article">
               <svg class="icon" aria-hidden="true"><use href="#i-play"/></svg>読み上げ
             </button>
@@ -138,13 +138,46 @@
             </button>
             <label class="sr-only" for="voice-select">読み上げ音声</label>
             <select id="voice-select"><option value="">音声を選択</option></select>
-            <label class="sr-only" for="voice-rate">読み上げ速度</label>
-            <select id="voice-rate">
-              <option value="0.75">0.75倍</option><option value="0.9">0.9倍</option>
-              <option value="1" selected>1倍</option><option value="1.1">1.1倍</option><option value="1.25">1.25倍</option>
-            </select>
+          </div>
+          <div class="control-row speech-settings" role="group" aria-label="読み上げ設定">
+            <label class="speech-setting speed-setting" for="voice-rate">
+              <span>速度</span>
+              <select id="voice-rate" aria-label="読み上げ速度">
+                <option value="0.5">0.5倍</option>
+                <option value="0.65">0.65倍</option>
+                <option value="0.75">0.75倍</option>
+                <option value="0.8">0.8倍</option>
+                <option value="0.9">0.9倍</option>
+                <option value="1" selected>1倍</option>
+                <option value="1.1">1.1倍</option>
+                <option value="1.25">1.25倍</option>
+                <option value="1.5">1.5倍</option>
+                <option value="1.75">1.75倍</option>
+                <option value="2">2倍</option>
+              </select>
+            </label>
+            <div class="speech-setting volume-setting">
+              <label for="volume-control">音量</label>
+              <input id="volume-control" type="range" min="0" max="100" step="1" value="100">
+              <output id="volume-value" for="volume-control" aria-live="off">100%</output>
+            </div>
+          </div>
+          <div class="control-row bgm-settings" role="group" aria-label="読み上げ中のBGM">
+            <label class="control audio-toggle bgm-toggle" title="読み上げ中にBGMを流します">
+              <input id="bgm-enabled" type="checkbox" checked>
+              <span>BGM</span>
+            </label>
+            <div class="speech-setting volume-setting bgm-volume-setting">
+              <label for="bgm-volume">BGM音量</label>
+              <input id="bgm-volume" type="range" min="0" max="100" step="1" value="22" aria-valuetext="22%">
+              <output id="bgm-volume-value" for="bgm-volume" aria-live="off">22%</output>
+            </div>
           </div>
           <div class="control-row mark-controls">
+            <label class="control audio-toggle continuous-toggle" title="読み終わると次の条文へ移動します">
+              <input id="continuous-reading" type="checkbox" aria-label="次の条文へ連続再生">
+              <span>連続再生</span>
+            </label>
             <button class="control control-marker" id="highlight-toggle" type="button" aria-pressed="false">
               <svg class="icon" aria-hidden="true"><use href="#i-marker"/></svg>マーカー
             </button>

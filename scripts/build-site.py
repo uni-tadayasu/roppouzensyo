@@ -16,7 +16,7 @@ CORE = {
     'index.html', 'styles.css', 'app.js', 'speech.js', 'offline.js', 'coverage.html',
     'manifest.webmanifest', 'assets/icon.svg', 'assets/favicon.ico',
     'assets/icon-192.png', 'assets/icon-512.png', 'assets/icon-maskable.png',
-    'data/catalog.json', 'data/editorial.json', 'edition.css', 'tts/voice.js',
+    'data/catalog.json', 'data/editorial.json', 'edition.css', 'tts/voice.js', 'tts/reading-audio.js',
 }
 
 

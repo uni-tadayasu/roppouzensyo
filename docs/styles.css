@@ -136,7 +136,15 @@ p, h1, h2, h3 { overflow-wrap: anywhere; }
 .source-link:hover { background: #f4f5ee; }
 .reader-controls { display: flex; flex-wrap: wrap; gap: 7px 11px; align-items: center; padding: 9px var(--article-padding); border-top: 1px solid #e9e7dd; border-bottom: 1px solid #e9e7dd; background: #faf9f3; }
 .control-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; max-width: 100%; }
-.voice-controls #voice-select { max-width: 172px; }
+.voice-controls #voice-select { max-width: 196px; }
+.speech-settings, .bgm-settings { gap: 6px 12px; }
+.speech-setting { display: flex; min-width: 0; align-items: center; gap: 7px; color: var(--muted); font-size: .76rem; font-weight: 670; white-space: nowrap; }
+.speech-setting select { min-width: 77px; }
+.volume-setting input { min-width: 0; width: 88px; height: 34px; margin: 0; accent-color: var(--forest); cursor: pointer; }
+.volume-setting output { min-width: 4ch; text-align: right; font-variant-numeric: tabular-nums; }
+.audio-toggle { white-space: nowrap; color: var(--forest); cursor: pointer; }
+.audio-toggle input { flex: 0 0 auto; width: 16px; height: 16px; margin: 0; accent-color: var(--forest); cursor: pointer; }
+.audio-toggle:has(input:checked) { border-color: #8ea594; background: var(--wash); }
 .marker-status { color: #5e4e35; font-size: .7rem; }
 .marker-status:empty { display: none; }
 .reading-feedback { margin: 7px var(--article-padding) 0; padding: 6px 9px; border-left: 2px solid #b58153; color: #5e4735; background: #fbf3e8; font-size: .77rem; overflow-wrap: anywhere; }
@@ -293,10 +301,12 @@ dialog::backdrop { background: #0c221fc2; }
   .article-caption { margin-top: 5px; }
   .reader-controls { padding-block: 7px; }
   .reader-controls .control, .reader-controls select { min-height: 38px; }
-  .voice-controls { display: grid; grid-template-columns: auto minmax(34px, auto) minmax(0, 110px) auto; gap: 5px; width: 100%; max-width: 333px; }
+  .voice-controls { display: grid; grid-template-columns: auto auto minmax(0, 196px); gap: 5px; width: 100%; }
   .voice-controls #read-article { white-space: nowrap; }
-  .voice-controls #voice-select { min-width: 0; width: 100%; max-width: none; padding-inline: 7px 3px; }
-  .voice-controls #voice-rate { width: 58px; padding-inline: 7px 3px; }
+  .voice-controls #voice-select { min-width: 0; width: 100%; max-width: none; padding-inline: 7px 16px; }
+  .speech-settings, .bgm-settings { display: grid; grid-template-columns: auto minmax(0, 175px); width: 100%; }
+  .bgm-toggle { justify-self: start; }
+  .volume-setting input { flex: 1; }
   .marker-status { flex-basis: 100%; }
   .reader-content { padding-block: 12px 18px; }
   .article-parts .reader-text, .article-parts .part-text { font-size: 1.16rem; line-height: 1.99; }
@@ -318,8 +328,6 @@ dialog::backdrop { background: #0c221fc2; }
   .reader-controls .control { padding-inline: 7px; font-size: .75rem; }
   .reader-controls select { padding-right: 15px; font-size: .73rem; }
   .control-row { gap: 4px; }
-  .voice-controls { grid-template-columns: auto minmax(31px, auto) minmax(0, 96px) auto; }
   .voice-controls #stop-speech { min-width: 34px; }
-  .voice-controls #voice-rate { width: 53px; font-size: .7rem; }
   .mark-settings > div { right: 0; left: auto; }
 }

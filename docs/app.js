@@ -1,8 +1,10 @@
 import { setupSpeech } from './speech.js';
+import { setReadingBgm } from './tts/reading-audio.js';
 
 const find = id => document.getElementById(id);
 const collate = new Intl.Collator('ja', { numeric: true });
 const STORE = 'roppo-reader-marks-v1';
+const SPEECH_PREFERENCES = 'roppo-speech-preferences-v1';
 const CASE_BATCH = 20;
 const defaultEditorial = { terms: [], summaries: {}, cases: [] };
 const state = {
@@ -10,7 +12,7 @@ const state = {
   laws: new Map(), law: null, article: null,
   blocks: new Map(), terms: new Map(), termPattern: null, legalPattern: null, compoundPattern: null, readings: new Map(),
   readingPattern: null, marks: loadMarks(), marker: false,
-  selection: [], excerpt: [], displayedTerm: '', gesture: null, routeRequest: 0,
+  selection: [], excerpt: [], displayedTerm: '', gesture: null, routeRequest: 0, articlePlayback: null,
 };
 
 function node(tag, className = '', value = '') {
@@ -81,15 +83,24 @@ function report(message) {
   if (feedback) feedback.textContent = message;
 }
 
+const rateControl = find('voice-rate') || find('speed-select');
+const volumeControl = find('volume-control');
+const volumeValue = find('volume-value');
+const continuousControl = find('continuous-reading');
+const bgmControl = find('bgm-enabled');
+const bgmVolumeControl = find('bgm-volume');
+const bgmVolumeValue = find('bgm-volume-value');
+
 const speech = setupSpeech({
-  select: find('voice-select'), rate: find('voice-rate') || find('speed-select'),
+  select: find('voice-select'), rate: rateControl, volume: volumeControl,
   stop: find('stop-speech'), report,
+  onStop: () => { state.articlePlayback = null; },
 });
 
 function addDialogSpeechControls(dialog) {
   const holder = dialog.querySelector('.dialog-actions') || dialog.querySelector('.dialog-inner');
   if (!holder) return;
-  const stop = button('読み上げを停止', () => speech.cancel(true));
+  const stop = button('読み上げを停止', () => stopArticlePlayback(true));
   const status = node('p', 'dialog-feedback reading-feedback');
   status.setAttribute('role', 'status');
   holder.append(stop, status);
@@ -112,7 +123,100 @@ function reading(text) {
 }
 
 function spoken(text) {
+  state.articlePlayback = null;
   speech.speak(reading(text));
+}
+
+function stopArticlePlayback(announce = false) {
+  state.articlePlayback = null;
+  speech.cancel(announce);
+}
+
+function playArticle() {
+  const {law, article} = state;
+  if (!article) return;
+  const playback = {law, article, url: location.href};
+  state.articlePlayback = playback;
+  const text = [article.title, article.caption, ...article.parts.map(part => part.reading || part.text)]
+    .filter(Boolean).join('。\n');
+  speech.speak(reading(text), {
+    onComplete: () => continueArticlePlayback(playback),
+    onError: () => {
+      if (state.articlePlayback === playback) state.articlePlayback = null;
+    },
+  });
+}
+
+async function continueArticlePlayback(playback) {
+  if (state.articlePlayback !== playback || playback.url !== location.href) return;
+  if (!continuousControl.checked) {
+    state.articlePlayback = null;
+    return;
+  }
+  const {law, article} = playback;
+  const next = law.articles[law.articles.indexOf(article) + 1];
+  if (!next) {
+    state.articlePlayback = null;
+    report('この法令の最後まで読み上げました。');
+    return;
+  }
+  await navigate(law.id, next.id, '', {automatic: true});
+  if (state.articlePlayback !== playback) return;
+  if (state.law === law && state.article === next && continuousControl.checked) playArticle();
+  else state.articlePlayback = null;
+}
+
+function bindSpeechPreferences() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SPEECH_PREFERENCES) || '{}');
+    if (saved && [...rateControl.options].some(option => option.value === saved.rate)) {
+      rateControl.value = saved.rate;
+    }
+    if (saved && Number.isInteger(saved.volume) && saved.volume >= 0 && saved.volume <= 100) {
+      volumeControl.value = String(saved.volume);
+    }
+    continuousControl.checked = saved?.continuous === true;
+    if (typeof saved?.bgm === 'boolean') bgmControl.checked = saved.bgm;
+    if (Number.isInteger(saved?.bgmVolume) && saved.bgmVolume >= 0 && saved.bgmVolume <= 100) {
+      bgmVolumeControl.value = String(saved.bgmVolume);
+    }
+  } catch {
+    // Default controls remain usable if storage is unavailable.
+  }
+
+  function showVolume() {
+    volumeValue.value = `${volumeControl.value}%`;
+    volumeControl.setAttribute('aria-valuetext', volumeValue.value);
+  }
+
+  function save() {
+    try {
+      localStorage.setItem(SPEECH_PREFERENCES, JSON.stringify({
+        rate: rateControl.value,
+        volume: Number(volumeControl.value),
+        continuous: continuousControl.checked,
+        bgm: bgmControl.checked,
+        bgmVolume: Number(bgmVolumeControl.value),
+      }));
+    } catch {
+      // Audio controls still work for this page when storage is unavailable.
+    }
+  }
+
+  function updateBgm() {
+    bgmVolumeValue.value = `${bgmVolumeControl.value}%`;
+    bgmVolumeControl.setAttribute('aria-valuetext', bgmVolumeValue.value);
+    setReadingBgm({ enabled: bgmControl.checked, volume: Number(bgmVolumeControl.value) / 100 });
+  }
+
+  showVolume();
+  updateBgm();
+  volumeControl.addEventListener('input', showVolume);
+  bgmVolumeControl.addEventListener('input', updateBgm);
+  bgmControl.addEventListener('change', updateBgm);
+  for (const control of [rateControl, volumeControl, continuousControl, bgmControl, bgmVolumeControl]) {
+    control.addEventListener('change', save);
+  }
 }
 
 function loadMarks() {
@@ -228,11 +332,12 @@ function currentRoute() {
   return { lawId, articleId, partId: url.searchParams.get('part') || '' };
 }
 
-async function navigate(lawId, articleId = '1', partId = '') {
+async function navigate(lawId, articleId = '1', partId = '', { automatic = false } = {}) {
+  if (!automatic) stopArticlePlayback();
   const url = routeURL(lawId, articleId, partId);
   if (url.href !== location.href) history.pushState({}, '', url);
   find('search-results').hidden = true;
-  await showRoute(true);
+  await showRoute(!automatic, automatic);
 }
 
 function fetchJSON(path) {
@@ -605,7 +710,7 @@ async function loadCases(law, article) {
   }
 }
 
-async function showRoute(moveFocus = false) {
+async function showRoute(moveFocus = false, automatic = false) {
   if (!state.catalog) return;
   const request = ++state.routeRequest;
   const route = currentRoute();
@@ -622,7 +727,6 @@ async function showRoute(moveFocus = false) {
     const changed = law.id !== state.law?.id || article.id !== state.article?.id;
     if (changed || !state.article) {
       setSelection([]);
-      if (state.article) speech.cancel();
       const changedLaw = law.id !== state.law?.id;
       state.law = law;
       state.article = article;
@@ -668,12 +772,16 @@ async function showRoute(moveFocus = false) {
         target.querySelector('.part-label')?.focus({ preventScroll: true });
         target.scrollIntoView({ block: 'center', behavior: 'instant' });
       } else report('指定された項・号を見つけられませんでした。');
-    } else if (moveFocus) {
+    } else if (moveFocus || automatic) {
       markPartActive('');
       const heading = find('article-heading');
-      heading.tabIndex = -1;
-      heading.focus({ preventScroll: true });
-      heading.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+      if (moveFocus) {
+        heading.tabIndex = -1;
+        heading.focus({ preventScroll: true });
+        heading.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+      } else {
+        heading.closest('.reader-panel').scrollIntoView({ block: 'start', behavior: 'instant' });
+      }
     }
   } catch (error) {
     console.error(error);
@@ -954,15 +1062,12 @@ function wireMarkers() {
 }
 
 function setBindings() {
+  bindSpeechPreferences();
   find('site-search').addEventListener('submit', submitSearch);
   find('article-select').addEventListener('change', event => {
     if (state.law) navigate(state.law.id, event.target.value);
   });
-  find('read-article').addEventListener('click', () => {
-    const article = state.article;
-    if (!article) return;
-    spoken([article.title, article.caption, ...article.parts.map(part => part.reading || part.text)].filter(Boolean).join('。\n'));
-  });
+  find('read-article').addEventListener('click', playArticle);
   find('highlight-toggle').addEventListener('click', () => setMarker(!state.marker));
   find('clear-marks').addEventListener('click', () => {
     const article = state.article;
@@ -1066,7 +1171,10 @@ function setBindings() {
       report('マーカーのバックアップを読み込めませんでした。');
     }
   });
-  window.addEventListener('popstate', () => showRoute(true));
+  window.addEventListener('popstate', () => {
+    stopArticlePlayback();
+    showRoute(true);
+  });
   setupDialog(find('term-dialog'));
   setupDialog(find('excerpt-dialog'));
   addDialogSpeechControls(find('term-dialog'));
