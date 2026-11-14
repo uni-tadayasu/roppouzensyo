@@ -1,0 +1,24 @@
+:root{color-scheme:light;--ink:#1a2d31;--paper:#fbf8f1;--line:#ded5c5;--accent:#86573b}
+*{box-sizing:border-box}
+html{background:var(--paper);color:var(--ink);font:17px/1.9 system-ui,"Noto Sans CJK JP",sans-serif}
+body{margin:0}
+a{color:#315851;text-underline-offset:.22em}
+a:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.edition-header{background:#14282c;color:#f3e9d8;display:flex;align-items:center;gap:1rem;min-height:4.4rem;padding:.6rem max(1rem,calc((100% - 56rem)/2))}
+.edition-header a{color:inherit;font-size:1.35rem;font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif CJK JP",serif;text-decoration:none;white-space:nowrap}
+.edition-header span{color:#d0a78a;font-size:.8rem;white-space:nowrap}
+main,footer{max-width:56rem;margin:auto;padding:1.5rem clamp(1rem,4vw,2.3rem)}
+h1,h2,h3,h4{font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif CJK JP",serif;line-height:1.55}
+h1{font-size:clamp(1.8rem,6vw,3rem);margin-block:1rem .35rem}
+h2{font-size:1.3rem;margin-bottom:.2rem}
+h3{margin-top:1.65rem}
+p{margin-block:.65rem}
+section{border-top:1px solid var(--line);padding-block:1rem 1.15rem;scroll-margin-top:1rem}
+p{overflow-wrap:anywhere}
+nav{padding:0 .9rem .9rem}
+nav a{display:inline-block;margin:.15rem .75rem .15rem 0}
+details{border:1px solid var(--line);border-radius:.35rem;margin-block:1.5rem}
+summary{cursor:pointer;padding:.55rem .9rem;font-weight:700}
+.edition-link,.edition-part{font-size:.82rem;white-space:normal}
+footer{border-top:1px solid var(--line);font-size:.88rem}
+main ul{padding-inline-start:1.3rem}

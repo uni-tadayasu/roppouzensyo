@@ -1,0 +1,17 @@
+{
+  "id": "./",
+  "name": "六法書架",
+  "short_name": "六法書架",
+  "description": "六法の条文を読む、引く、聴く。用語・判例を参照できるオフライン対応の法令書架。",
+  "lang": "ja",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f0e7",
+  "theme_color": "#122329",
+  "icons": [
+    {"src":"assets/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any"},
+    {"src":"assets/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any"},
+    {"src":"assets/icon-maskable.png","sizes":"512x512","type":"image/png","purpose":"maskable"}
+  ]
+}
