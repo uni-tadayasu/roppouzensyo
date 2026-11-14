@@ -3,46 +3,50 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="六法書架は、憲法・民法・商法・刑法・民事訴訟法・刑事訴訟法を読めるデジタル六法全書です。条文の検索、用語解説、判例、読み上げ、マーカー、オフライン閲覧に対応します。">
-  <meta name="theme-color" content="#132b2c">
+  <meta name="description" content="日本国憲法・民法・商法・刑法・民事訴訟法・刑事訴訟法を収録した法令書庫。条文検索、関連判例、用語解説、音声朗読、オフライン閲覧に対応。">
+  <meta name="theme-color" content="#0c1722">
   <meta property="og:type" content="website">
   <meta property="og:locale" content="ja_JP">
   <meta property="og:site_name" content="六法書架">
-  <meta property="og:title" content="六法書架｜日本の基本六法を読む">
-  <meta property="og:description" content="憲法・民法・商法・刑法・民事訴訟法・刑事訴訟法のデジタル書架。用語、判例、読み上げ、マーカーをひとつの画面で。">
+  <meta property="og:title" content="六法書架｜条文・判例を読む法令書庫">
+  <meta property="og:description" content="六つの法典から条文を探し、原文・解説・判例を参照。読み上げとオフライン閲覧に対応した法令書庫。">
   <meta property="og:image" content="assets/og.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="六法書架｜日本の基本六法を読む">
+  <meta property="og:image:alt" content="六法書架｜条文・判例を読む法令書庫">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:image" content="assets/og.png">
-  <title>六法書架｜日本の基本六法を読む</title>
+  <title>六法書架｜条文・判例を読む法令書庫</title>
   <link rel="icon" href="assets/favicon.ico" sizes="any">
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="assets/icon-192.png">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="styles.css">
+  <link rel="preload" href="assets/cg/archive.webp" as="image" media="(min-width: 651px)" fetchpriority="high">
+  <link rel="preload" href="assets/cg/archive-mobile.webp" as="image" media="(max-width: 650px)" fetchpriority="high">
   <script src="app.js" type="module"></script>
   <script src="offline.js" type="module"></script>
 </head>
 <body>
   <svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.5"/><path d="m15.7 15.7 4 4"/></symbol>
-    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-4.5-4.5L12 15l4.5-4.5M5 16v4h14v-4"/></symbol>
-    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M7 7a7 7 0 0 1 11 1l2 4M4 12l2 4a7 7 0 0 0 11 1"/></symbol>
-    <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 6.5C9 4 5.7 4.1 3 5v13c2.7-.9 6-.9 9 1.5 3-2.4 6.3-2.4 9-1.5V5c-2.7-.9-6-1-9 1.5zm0 0v13"/></symbol>
-    <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></symbol>
-    <symbol id="i-play" viewBox="0 0 24 24"><path d="m9 5 11 7-11 7z"/></symbol>
-    <symbol id="i-stop" viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="1"/></symbol>
-    <symbol id="i-marker" viewBox="0 0 24 24"><path d="m9 16-2-2 9-9 3 3-9 9-4 1 1-4m-3 6h15"/></symbol>
-    <symbol id="i-select" viewBox="0 0 24 24"><path d="M8 4H4v4m12-4h4v4M4 16v4h4m12-4v4h-4M9 9h6m-3 0v6"/></symbol>
-    <symbol id="i-link" viewBox="0 0 24 24"><path d="M13 5h6v6m-1-5-7 7m7 0v6H5V6h6"/></symbol>
-    <symbol id="i-share" viewBox="0 0 24 24"><path d="M9 8 5 12l4 4m6-8 4 4-4 4M5 12h14"/></symbol>
-    <symbol id="i-left" viewBox="0 0 24 24"><path d="m14 6-6 6 6 6"/></symbol>
-    <symbol id="i-right" viewBox="0 0 24 24"><path d="m10 6 6 6-6 6"/></symbol>
-    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v.1"/></symbol>
-    <symbol id="i-scale" viewBox="0 0 24 24"><path d="M12 4v15m-4 1h8M5 7h14M7 7l-4 7h8L7 7zm10 0-4 7h8l-4-7z"/></symbol>
-    <symbol id="i-cross" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><path d="M15.2 15.2 21 21M10.5 4H8L4 8v5l4 4h5l4-4V8l-4-4h-2.5Z"/><path d="M8 10.5h5m-2.5-2.5v5"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M5 13H3v7h18v-7h-2M12 3v12m-4-4 4 4 4-4m-8 8h8"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M4 10a8 8 0 0 1 14-4l2 2m0-5v5h-5m5 6a8 8 0 0 1-14 4l-2-2m0 5v-5h5"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 7c-2-2-5-3-9-3v14c4 0 7 1 9 3 2-2 5-3 9-3V4c-4 0-7 1-9 3Zm0 0v14M6 8l3 1m-3 3 3 1m6-4 3-1m-3 5 3-1"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24"><path d="M4 3h13l3 3v15H4zm12 0v4h4M7 9h8m-8 4h10m-10 4h7"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="m8 4 12 8-12 8z" fill="currentColor" stroke="none"/><path d="M4 6v12"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24"><path d="M7 5h10l2 2v10l-2 2H7l-2-2V7z"/><path d="M9 9h6v6H9z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-marker" viewBox="0 0 24 24"><path d="m5 19 2-5L17 4l3 3-10 10-5 2Zm1-1 3-2m5-9 3 3M4 22h16"/></symbol>
+    <symbol id="i-select" viewBox="0 0 24 24"><path d="M8 4H4v4m12-4h4v4M4 16v4h4m12-4v4h-4M8 9h8m-4 0v6m-2 0h4"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><path d="M14 4h6v6m0-6-9 9m7 0v7H4V6h7"/></symbol>
+    <symbol id="i-share" viewBox="0 0 24 24"><path d="M9 15l6-6m-6 1-3 3a3 3 0 0 0 5 5l2-2m-2-8 2-2a3 3 0 0 1 5 5l-3 3"/></symbol>
+    <symbol id="i-left" viewBox="0 0 24 24"><path d="m12 6-6 6 6 6m-6-6h13"/></symbol>
+    <symbol id="i-right" viewBox="0 0 24 24"><path d="m12 6 6 6-6 6m6-6H5"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><path d="m12 2 10 10-10 10L2 12zm0 9v5"/><circle cx="12" cy="8" r=".8" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-scale" viewBox="0 0 24 24"><path d="M12 3v16m-5 2h10M4 7h16M6 7l-4 8h8L6 7Zm12 0-4 8h8l-4-8Z"/></symbol>
+    <symbol id="i-cross" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/><path d="M4 8V4h4m8 0h4v4M4 16v4h4m8 0h4v-4"/></symbol>
+    <symbol id="i-audio" viewBox="0 0 24 24"><path d="M3 12h2m2-4v8m5-13v18m5-13v8m2-4h2"/></symbol>
+    <symbol id="i-music" viewBox="0 0 24 24"><path d="M9 17V6l11-3v11M9 8l11-3"/><ellipse cx="6" cy="18" rx="3" ry="2"/><ellipse cx="17" cy="15" rx="3" ry="2"/></symbol>
   </svg>
   <a class="skip-link" href="#article-heading">条文本文へ</a>
 
@@ -51,7 +55,7 @@
       <a class="wordmark" href="./" aria-label="六法書架 ホーム">
         <img src="assets/icon.svg" width="38" height="38" alt="">
         <span class="wordmark-ja">六法書架</span>
-        <span class="wordmark-roman" aria-hidden="true">ROPPŌ</span>
+        <span class="wordmark-roman" aria-hidden="true">ROPPŌ ARCHIVE</span>
       </a>
       <div class="masthead-actions">
         <button class="control control-plain masthead-button" id="check-update" type="button">
@@ -67,23 +71,19 @@
   <section class="hero" aria-labelledby="hero-heading">
     <div class="page-width hero-inner">
       <div class="hero-content">
-        <div class="hero-kicker"><span></span>法令リファレンス</div>
-        <h1 id="hero-heading">六法を、ひらく。</h1>
-        <p class="hero-lead">基本六法の条文から、用語の意味と関連判例へ。</p>
+        <h1 id="hero-heading">六法書架</h1>
+        <p class="hero-lead">条文を読む。判例を引く。声で聴く。</p>
         <form class="site-search" id="site-search" role="search">
           <label class="sr-only" for="query">法令名、条文番号、キーワード</label>
           <svg class="icon search-icon" aria-hidden="true"><use href="#i-search"/></svg>
           <input id="query" name="q" type="search" placeholder="法令名・条文番号・キーワード" autocomplete="off">
-          <button type="submit">検索</button>
+          <button type="submit">検索 <svg class="icon" aria-hidden="true"><use href="#i-right"/></svg></button>
         </form>
-      </div>
-      <div class="bookplate" aria-hidden="true">
-        <div class="bookplate-lines"></div>
-        <span class="bookplate-top">日本の基本六法</span>
-        <div class="bookplate-volumes">
-          <i><b>憲</b></i><i><b>民</b></i><i><b>商</b></i><i><b>刑</b></i><i><b>民訴</b></i><i><b>刑訴</b></i>
+        <div class="search-shortcuts" aria-label="条文の検索例">
+          <button type="submit" form="site-search" data-search="憲法第13条">憲法13条</button>
+          <button type="submit" form="site-search" data-search="民法第709条">民法709条</button>
+          <button type="submit" form="site-search" data-search="刑法第199条">刑法199条</button>
         </div>
-        <span class="bookplate-bottom">ROPPŌ · JAPANESE LEGAL REFERENCE</span>
       </div>
     </div>
   </section>
@@ -91,9 +91,14 @@
   <div class="shelf">
     <div class="page-width shelf-inner">
       <nav class="law-nav" aria-label="基本六法">
-        <div class="law-nav-label"><svg class="icon" aria-hidden="true"><use href="#i-book"/></svg><span>法令一覧</span></div>
+        <div class="law-nav-label"><svg class="icon" aria-hidden="true"><use href="#i-book"/></svg><span>法典を選ぶ</span></div>
         <div id="law-list" class="law-list">
-          <span>日本国憲法</span><span>民法</span><span>商法</span><span>刑法</span><span>民事訴訟法</span><span>刑事訴訟法</span>
+          <a class="law-link" data-law="constitution" href="read/constitution.html"><span>日本国憲法</span></a>
+          <a class="law-link" data-law="civil" href="read/civil.html"><span>民法</span></a>
+          <a class="law-link" data-law="commercial" href="read/commercial.html"><span>商法</span></a>
+          <a class="law-link" data-law="criminal" href="read/criminal.html"><span>刑法</span></a>
+          <a class="law-link" data-law="civil-procedure" href="read/civil-procedure.html"><span>民事訴訟法</span></a>
+          <a class="law-link" data-law="criminal-procedure" href="read/criminal-procedure.html"><span>刑事訴訟法</span></a>
         </div>
       </nav>
       <div class="offline-status" id="offline-status" role="status" aria-live="polite">法令データを読み込み中</div>
@@ -128,7 +133,8 @@
           <p id="article-caption" class="article-caption" hidden></p>
         </header>
 
-        <div class="reader-controls" role="group" aria-label="条文の操作">
+        <div class="reader-controls" role="group" aria-labelledby="audio-title">
+          <h3 class="audio-heading" id="audio-title"><svg class="icon" aria-hidden="true"><use href="#i-audio"/></svg>条文の朗読</h3>
           <div class="control-row voice-controls" role="group" aria-label="読み上げ">
             <button type="button" class="control control-dark" id="read-article">
               <svg class="icon" aria-hidden="true"><use href="#i-play"/></svg>読み上げ
@@ -165,7 +171,7 @@
           <div class="control-row bgm-settings" role="group" aria-label="読み上げ中のBGM">
             <label class="control audio-toggle bgm-toggle" title="読み上げ中にBGMを流します">
               <input id="bgm-enabled" type="checkbox" checked>
-              <span>BGM</span>
+              <svg class="icon" aria-hidden="true"><use href="#i-music"/></svg><span>BGM</span>
             </label>
             <div class="speech-setting volume-setting bgm-volume-setting">
               <label for="bgm-volume">BGM音量</label>
@@ -228,11 +234,11 @@
 
       <aside class="reference-panel" aria-label="条文の参考情報">
         <section class="reference-card" aria-labelledby="summary-title">
-          <header class="reference-header"><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg><h2 id="summary-title">要約・解説</h2></header>
+          <header class="reference-header"><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg><h2 id="summary-title">条文の解説</h2></header>
           <div id="article-summary" class="reference-content"><p class="empty-state">条文を選ぶと表示されます。</p></div>
         </section>
         <section class="reference-card" aria-labelledby="cases-title">
-          <header class="reference-header"><svg class="icon" aria-hidden="true"><use href="#i-scale"/></svg><h2 id="cases-title">関連判例</h2></header>
+          <header class="reference-header"><svg class="icon" aria-hidden="true"><use href="#i-scale"/></svg><h2 id="cases-title">関連する判例</h2></header>
           <div id="case-list" class="reference-content"><p class="empty-state">条文を選ぶと表示されます。</p></div>
         </section>
       </aside>
@@ -264,7 +270,7 @@
   <dialog id="term-dialog" aria-labelledby="term-title">
     <div class="dialog-inner">
       <header class="dialog-heading">
-        <div><p class="dialog-label">用語の意味</p><h2 id="term-title"></h2></div>
+        <div><p class="dialog-label">用語解説</p><h2 id="term-title"></h2></div>
         <button class="control icon-button" id="term-close" type="button" aria-label="用語の意味を閉じる" autofocus>
           <svg class="icon" aria-hidden="true"><use href="#i-cross"/></svg>
         </button>
@@ -280,7 +286,7 @@
   <dialog id="excerpt-dialog" aria-labelledby="excerpt-title">
     <div class="dialog-inner">
       <header class="dialog-heading">
-        <div><p class="dialog-label">条文・解説・判例</p><h2 id="excerpt-title">選択した範囲</h2></div>
+        <div><p class="dialog-label">抜粋</p><h2 id="excerpt-title">選択した範囲</h2></div>
         <button class="control icon-button" id="excerpt-close" type="button" aria-label="選択した範囲を閉じる" autofocus>
           <svg class="icon" aria-hidden="true"><use href="#i-cross"/></svg>
         </button>

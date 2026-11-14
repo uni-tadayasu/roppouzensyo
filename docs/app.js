@@ -417,10 +417,12 @@ function updateLawList(current) {
     const control = readerLink(law.id, '1', '', 'law-link');
     control.dataset.law = law.id;
     if (law.id === current) control.setAttribute('aria-current', 'page');
-    control.append(
+    const label = node('span', 'law-label');
+    label.append(
       node('span', 'law-name', law.title),
       node('span', 'law-count', `${Number(law.articles).toLocaleString('ja-JP')}条`),
     );
+    control.append(label);
     return control;
   }));
 }
@@ -730,6 +732,7 @@ async function showRoute(moveFocus = false, automatic = false) {
       const changedLaw = law.id !== state.law?.id;
       state.law = law;
       state.article = article;
+      document.querySelector('.reader-panel').dataset.law = law.id;
       state.blocks.clear();
       if (changedLaw) {
         updateLawList(law.id);
@@ -835,7 +838,9 @@ let searchRequest = 0;
 async function submitSearch(event) {
   event.preventDefault();
   if (!state.catalog) return;
-  const query = find('query').value.trim();
+  const input = find('query');
+  if (event.submitter?.dataset.search) input.value = event.submitter.dataset.search;
+  const query = input.value.trim();
   const holder = find('search-results');
   const request = ++searchRequest;
   if (!query) {

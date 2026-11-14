@@ -1,48 +1,89 @@
 <!doctype html>
 <html lang="ja">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>収録範囲・使い方｜六法書架</title>
-<meta name="description" content="六法書架の法令・判例・用語の出典、オフライン保存、条文の使い方、音声のライセンス。">
-<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="edition.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101c2b">
+  <title>収録範囲と使い方｜六法書架</title>
+  <meta name="description" content="六法書架の法令・判例・用語の出典と、オフライン保存、マーカー、読み上げの使い方。">
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="edition.css">
 </head>
-<body>
-<header class="edition-header"><a href="./">六法書架</a><span>収録範囲・使い方</span></header>
-<main>
-<h1>収録範囲と使い方</h1>
-<section>
-<h2>基本六法の原文</h2>
-<p>日本国憲法、民法、商法、刑法、民事訴訟法、刑事訴訟法の現行施行版を収録しています。e-Govの条文・項・号をリーダー向けに構成し直しています。前文と附則も確認できます。施行前の改正、過去時点の法令、六法以外の関連法令は掲載範囲外です。</p>
-<p><a href="https://laws.e-gov.go.jp/">e-Gov法令検索</a> · <a href="https://laws.e-gov.go.jp/api/2/swagger-ui">法令API Version 2</a></p>
-<p>全文版を開くと、各条の前後を続けて読めます。</p>
-<ul>
-<li><a href="read/constitution.html">日本国憲法</a></li><li><a href="read/civil.html">民法</a></li>
-<li><a href="read/commercial.html">商法</a></li><li><a href="read/criminal.html">刑法</a></li>
-<li><a href="read/civil-procedure.html">民事訴訟法</a></li><li><a href="read/criminal-procedure.html">刑事訴訟法</a></li>
-</ul>
-</section>
-<section>
-<h2>判例・条文解説・用語</h2>
-<p>判例は、裁判所の公開情報に由来する 情報・システム研究機構 人工知能法学研究センターの「日本の判例の知識グラフ」（2026年10月1日版）から、基本六法への参照が抽出された36,595件を掲載しています。うち6件は、公式判決PDFをもとにした本文と個別解説も収録しています。判決の結論、判示事項、裁判所の要旨、判決からの抽出文、事件情報は出典を分けて表示します。件数のない条文でも、関連判断が存在する場合があります。自動抽出による条文との対応や判決理由の抜粋は、公式ページで確認できます。要旨を抽出できなかった5,221件は事件情報を表示します。</p>
-<p><a href="https://www.courts.go.jp/hanrei/search2/index.html">裁判所 裁判例検索</a> · <a href="https://github.com/JurisInformaticsCenter/KGraphNavi/releases/tag/caselaw-data-2026.10">判例知識グラフの配布元</a> · <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a></p>
-<p>このサイトではグラフから対象条文のリンク、裁判例の本文情報や要旨を抽出し、検索・閲覧用のデータへ変換しています。裁判所はすべての判決等を公開しているわけではありません。公式判決への外部リンクを開くには通信が必要です。</p>
-<p>条文ごとに、個別に記述した解説または条文から自動作成した概要を表示します。自動作成した概要は読み始めるための案内です。法的な結論を確かめる際は条文や判決の原文を参照してください。</p>
-<p>収録した法律用語に二重線、一般の熟語に一重線を表示します。用語を選ぶと意味と読み上げを利用できます。一般の熟語の一部に日本語 WordNet 2.1 の見出し・語義を使用しています。文脈により異なる意味で使われる語があります。</p>
-<p><a href="https://bond-lab.github.io/wnja/">日本語 WordNet</a> · <a href="data/WORDNET-LICENSE.txt">ライセンス</a></p>
-</section>
-<section>
-<h2>マーカー・読み上げ・オフライン保存</h2>
-<p>「マーカー」を有効にし、PCではドラッグ、スマホでは文字の上を指でなぞります。マーカーは使用中のブラウザ内に保存されます。画面をスクロールするにはマーカーモードを解除してください。番号付きの項・号は個別に選んで読み上げやマーカーを使えます。</p>
-<p>初回にオンラインで開き「オフライン保存」を選ぶと、収録した条文・判例データ・用語・音声が端末に保存されます。「法令を更新」で、新たに公開された版を取り込めます。通信なしで使用する場合は、保存完了を確認してからお使いください。</p>
-<p>日本語の男性音声・女性音声を切り替えられます。同梱の Open JTalk は、端末に日本語音声を用意しなくても動作します。法令XMLのルビと登録済みの読みを利用しますが、同形異音語や長文の抑揚などには自動音声特有の誤りが残る場合があります。</p>
-<p>「連続再生」をオンにして条文の「読み上げ」を押すと、読み終わるたびに次の条文に画面が切り替わり、同じ法令の末尾まで進みます。停止ボタンでいつでも止められます。音量は0〜100％、速度は0.5〜2倍で調整でき、設定はブラウザに保存されます。端末の音声を選んだ場合、再生中の調整は次の文から反映されます。</p>
-<p>「BGM」をオンにして読み上げると「Hear your voice」が流れます。声が流れ始めると曲を自動で小さくします。曲の音量は「BGM音量」で調整できます。オフラインで曲を聴くには「オフライン保存」を完了してください。</p>
-<p>iPhoneでマナーモード中に本体スピーカーから聴く場合は、「女性・内蔵」または「男性・内蔵」を選んで読み上げを開始してください。出力先とメディア音量はiPhoneの設定に従います。</p>
-<p><a href="tts/NOTICE.txt">Open JTalk・音声モデル・辞書のライセンス</a></p>
-</section>
-</main>
-<footer><a href="./">六法書架トップへ</a></footer>
+<body class="coverage-edition" id="page-top">
+  <a class="skip-edition" href="#guide">使い方へ</a>
+  <header class="edition-header">
+    <div class="edition-frame edition-masthead">
+      <a class="edition-brand" href="./"><img src="assets/icon.svg" width="36" height="36" alt="">六法書架</a>
+      <a class="edition-nav-link" href="./">条文リーダーへ戻る</a>
+    </div>
+  </header>
+  <main>
+    <header class="edition-hero">
+      <div class="edition-frame edition-intro">
+        <div>
+          <p class="edition-kicker"><span></span>法令・判例の出典</p>
+          <h1>収録範囲と使い方</h1>
+          <p class="edition-meta">六法の収録内容、使い方、原典を確認する。</p>
+        </div>
+        <div class="edition-plaque" aria-hidden="true"><img src="assets/cg/folio.webp" width="432" height="432" alt=""></div>
+      </div>
+    </header>
+    <div class="edition-frame coverage-layout" id="guide">
+      <aside class="coverage-contents">
+        <nav aria-label="案内ページの目次">
+          <strong>このページの目次</strong>
+          <a href="#statutes">基本六法</a>
+          <a href="#references">判例・解説・用語</a>
+          <a href="#reading">読み上げとBGM</a>
+          <a href="#offline">オフライン保存とマーカー</a>
+        </nav>
+      </aside>
+      <div class="coverage-text">
+        <section class="coverage-section" id="statutes">
+          <header><h2>基本六法の原文</h2><img src="assets/cg/index.webp" width="432" height="432" alt="" loading="lazy"></header>
+          <p>日本国憲法、民法、商法、刑法、民事訴訟法、刑事訴訟法の現行施行版を収録しています。e-Govの条文・項・号をリーダー向けに構成し直しています。前文と附則も確認できます。施行前の改正、過去時点の法令、六法以外の関連法令は掲載範囲外です。</p>
+          <p class="sources"><a href="https://laws.e-gov.go.jp/">e-Gov法令検索</a> · <a href="https://laws.e-gov.go.jp/api/2/swagger-ui">法令API Version 2</a></p>
+          <h3>各法令の全文を読む</h3>
+          <ul class="coverage-editions">
+            <li><a href="read/constitution.html">日本国憲法</a></li>
+            <li><a href="read/civil.html">民法</a></li>
+            <li><a href="read/commercial.html">商法</a></li>
+            <li><a href="read/criminal.html">刑法</a></li>
+            <li><a href="read/civil-procedure.html">民事訴訟法</a></li>
+            <li><a href="read/criminal-procedure.html">刑事訴訟法</a></li>
+          </ul>
+        </section>
+        <section class="coverage-section" id="references">
+          <header><h2>判例・条文解説・用語</h2><img src="assets/cg/cases.webp" width="432" height="432" alt="" loading="lazy"></header>
+          <p>基本六法への参照が抽出された36,595件を、情報・システム研究機構 人工知能法学研究センターの「日本の判例の知識グラフ」（2026年10月1日版）から収録しています。うち6件は、公式判決PDFをもとにした本文と個別解説も掲載しています。判決の結論、判示事項、裁判所の要旨、判決からの抽出文、事件情報は出典を分けて表示します。要旨を抽出できなかった5,221件は事件情報を表示します。</p>
+          <p class="sources"><a href="https://www.courts.go.jp/hanrei/search2/index.html">裁判所 裁判例検索</a> · <a href="https://github.com/JurisInformaticsCenter/KGraphNavi/releases/tag/caselaw-data-2026.10">判例知識グラフの配布元</a> · <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a></p>
+          <p>裁判所の検索には一部の判決等が掲載されています。件数のない条文にも関連する判断が存在する場合があります。自動抽出した条文との対応や判決理由の抜粋は、公式ページで確認できます。公式判決への外部リンクを開くには通信が必要です。</p>
+          <p>条文ごとに、個別の解説または条文から自動作成した概要を表示します。法的な結論を確かめる際は、条文や判決の原文を参照してください。</p>
+          <p>二重線の法律用語と一重線の熟語は、選ぶと意味と読み上げを利用できます。一般の熟語の一部に日本語 WordNet 2.1 の見出し・語義を使用しています。語の意味は文脈によって変わる場合があります。</p>
+          <p class="sources"><a href="https://bond-lab.github.io/wnja/">日本語 WordNet</a> · <a href="data/WORDNET-LICENSE.txt">ライセンス</a></p>
+        </section>
+        <section class="coverage-section" id="reading">
+          <header><h2>読み上げとBGM</h2><img src="assets/cg/audio.webp" width="432" height="432" alt="" loading="lazy"></header>
+          <p>「連続再生」をオンにして条文を読み上げると、次の条文へ進みながら同じ法令の末尾まで再生します。停止ボタンで止められます。音量は0〜100％、速度は0.5〜2倍です。設定はブラウザに保存されます。端末の音声を選んだ場合、再生中の調整は次の文から反映されます。</p>
+          <p>「BGM」をオンにすると「Hear your voice」が流れ、声が始まると自動で小さくなります。「BGM音量」で曲だけを調整できます。</p>
+          <p>iPhoneでマナーモード中に本体スピーカーから聴く場合は、「女性・内蔵」または「男性・内蔵」で読み上げを開始してください。出力先とメディア音量はiPhoneの設定に従います。</p>
+          <p>同梱の Open JTalk は端末に日本語音声を用意せずに利用できます。法令XMLのルビと登録済みの読みを反映します。同形異音語や長文の抑揚には、自動音声特有の誤りが残る場合があります。</p>
+          <p class="sources"><a href="tts/NOTICE.txt">Open JTalk・音声モデル・辞書のライセンス</a></p>
+        </section>
+        <section class="coverage-section" id="offline">
+          <header><h2>オフライン保存とマーカー</h2><img src="assets/cg/marker.webp" width="432" height="432" alt="" loading="lazy"></header>
+          <p>初回はオンラインで開き、「オフライン保存」で条文・判例データ・用語・音声・BGMを端末に保存してください。「法令を更新」で、新しく公開された版を取り込めます。</p>
+          <p>「マーカー」を有効にし、PCではドラッグ、スマホでは文字の上を指でなぞります。マーカーは使用中のブラウザ内に保存されます。画面をスクロールするときはマーカーモードを解除してください。番号付きの項・号は個別に選んで読み上げやマーカーを使えます。</p>
+        </section>
+      </div>
+    </div>
+  </main>
+  <footer class="edition-footer">
+    <div class="edition-frame">
+      <a class="edition-brand" href="./"><img src="assets/icon.svg" width="30" height="30" alt="">六法書架</a>
+      <a href="./">条文リーダー</a>
+      <a href="#page-top">ページ上部へ <span aria-hidden="true">↑</span></a>
+    </div>
+  </footer>
 </body>
 </html>
