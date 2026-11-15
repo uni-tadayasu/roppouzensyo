@@ -14,6 +14,9 @@ export function setupSpeech({ select, rate, volume, stop, report, onStop }) {
   let voices = [];
   let active = null;
   let generation = 0;
+  const voicePreferenceKey = 'roppo-speech-voice-v1';
+  let preferredVoice = '';
+  try { preferredVoice = localStorage.getItem(voicePreferenceKey) || ''; } catch { /* Optional preference. */ }
 
   function populate() {
     const oldChoice = select.value;
@@ -27,9 +30,9 @@ export function setupSpeech({ select, rate, volume, stop, report, onStop }) {
       const gender = femaleNames.test(voice.name) ? '女性' : maleNames.test(voice.name) ? '男性' : '';
       select.add(new Option(gender ? `${voice.name}（${gender}）` : voice.name, voice.voiceURI));
     }
-    if (bundled.has(oldChoice) || voices.some(voice => voice.voiceURI === oldChoice)) {
-      select.value = oldChoice;
-    }
+    const available = choice => bundled.has(choice) || voices.some(voice => voice.voiceURI === choice);
+    if (available(preferredVoice)) select.value = preferredVoice;
+    else if (available(oldChoice)) select.value = oldChoice;
     select.disabled = false;
   }
 
@@ -136,6 +139,10 @@ export function setupSpeech({ select, rate, volume, stop, report, onStop }) {
     }
   }
 
+  select.addEventListener('change', () => {
+    preferredVoice = select.value;
+    try { localStorage.setItem(voicePreferenceKey, preferredVoice); } catch { /* Reading works without storage. */ }
+  });
   engine?.addEventListener('voiceschanged', populate);
   for (const control of [rate, volume]) {
     control?.addEventListener('input', syncSettings);

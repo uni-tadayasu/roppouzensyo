@@ -545,3 +545,57 @@ dialog::backdrop { background: #071423b8; }
 @media (prefers-reduced-motion: no-preference) {
   .control, .law-link, .site-search button, .search-shortcuts button { transition: color .15s, border-color .15s, background-color .15s, box-shadow .15s; }
 }
+
+/* Reading desk: restrained gold details, with a quiet and adjustable text surface. */
+.hero-kicker { margin: 0 0 15px; color: #dfbd82; font-size: .74rem; letter-spacing: .24em; }
+.resume-reading { display: inline-flex; align-items: center; gap: 9px; margin-top: 15px; padding: 7px 0; border: 0; border-bottom: 1px solid #b8965c; color: #f6dba6; background: transparent; font-size: .8rem; text-align: left; }
+.resume-reading:hover { color: #fff; border-color: #fff; }
+.article-study-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 18px; }
+.reading-progress-wrap { display: grid; gap: 6px; width: min(55%, 240px); min-width: 0; }
+.reading-progress-wrap label { color: #65583f; font-size: .68rem; letter-spacing: .02em; }
+#reading-progress { appearance: none; width: 100%; height: 3px; border: 0; border-radius: 8px; overflow: hidden; background: #ded4bf; color: #8f652e; }
+#reading-progress::-webkit-progress-bar { background: #ded4bf; }
+#reading-progress::-webkit-progress-value { background: #8f652e; }
+#reading-progress::-moz-progress-bar { background: #8f652e; }
+.bookmark-button { font-size: .74rem; background: #fffaf0; }
+.bookmark-button::before { content: ""; width: 10px; height: 14px; border: 1px solid currentColor; clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 72%, 0 100%); background: #f4ead5; }
+.bookmark-button[aria-pressed="true"] { color: #fff3d9; border-color: #755228; background: #755228; }
+.bookmark-button[aria-pressed="true"]::before { background: #f0ca84; }
+.saved-shelf { padding: 10px 12px 14px; border-top: 1px solid #ded4c3; background: linear-gradient(140deg, #f5ecda, #fffdf8); border-radius: 0 0 8px 8px; }
+.saved-shelf summary { font-family: var(--serif); font-weight: 700; color: #6a4f2d; cursor: pointer; }
+#saved-articles { max-height: 220px; overflow: auto; margin-top: 10px; font-size: .73rem; scrollbar-width: thin; }
+#saved-articles a { display: block; padding: 7px 4px; overflow-wrap: anywhere; text-decoration: none; }
+#saved-articles a:hover { background: #ebdfc6; }
+#saved-articles p { margin: 4px 0; }
+#saved-articles .saved-article { display: flex; align-items: center; gap: 3px; border-top: 1px solid #e2d7c4; }
+#saved-articles .saved-article a { flex: 1; }
+.display-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; padding: 11px var(--article-padding); border-bottom: 1px solid #eee4d3; background: #fffaf0; color: #5b6270; }
+.display-controls label { font-size: .7rem; }
+.display-controls select { min-height: 34px; padding-block: 3px; font-size: .74rem; }
+.display-controls .control { margin-left: auto; min-height: 34px; font-size: .74rem; }
+[data-reader-size="large"] .article-parts .reader-text { font-size: clamp(1.22rem, 1.9vw, 1.5rem); }
+[data-reader-size="largest"] .article-parts .reader-text { font-size: clamp(1.42rem, 2.25vw, 1.8rem); }
+[data-reader-font="sans"] .article-parts .reader-text { font-family: var(--sans); }
+.reading-focus :is(.hero, .shelf, .toc-panel, .reference-panel, .site-footer) { display: none; }
+.reading-focus .body-area { max-width: 920px; padding-bottom: 110px; }
+.reading-focus .reader-grid { grid-template-columns: minmax(0, 1fr); }
+.focus-dock { position: fixed; z-index: 6; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; width: max-content; max-width: calc(100% - 24px); padding: 8px 11px; border: 1px solid #ba985f; border-radius: 8px; color: #f9e7c8; background: #14283af5; box-shadow: 0 6px 24px #10192850; font-size: .75rem; }
+.focus-dock a { color: #f4d6a1; }
+.focus-dock .control { min-height: 36px; color: var(--ink); }
+@media (max-width: 650px) {
+  .hero-kicker { font-size: .65rem; margin-bottom: 10px; }
+  .saved-shelf { padding: 8px 11px; }
+  .article-study-row { gap: 8px; }
+  .display-controls { gap: 6px; }
+  .display-controls .control { margin-left: 0; }
+  .focus-dock { gap: 8px; bottom: max(12px, env(safe-area-inset-bottom)); }
+  .focus-dock > span { display: none; }
+}
+@media print {
+  .masthead, .hero, .shelf, .toc-panel, .reader-controls, .display-controls, .article-study-row, .article-footer, .site-footer, .focus-dock, .part-actions, .reading-feedback { display: none !important; }
+  .body-area, .page-width { width: 100%; padding: 0; }
+  .reader-grid { display: block; }
+  .reader-panel, .reference-card { border: 0; box-shadow: none; background: white; }
+  .article-header, .reader-content, .reference-header { background: white; color: black; }
+  .reference-panel { display: block; }
+}

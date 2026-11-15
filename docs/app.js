@@ -1,3 +1,4 @@
+import { validateMarks, findMarkRange, readStudyState, bookmarkKey, searchExcerpt } from './reader-state.mjs';
 import { setupSpeech } from './speech.js';
 import { setReadingBgm } from './tts/reading-audio.js';
 
@@ -5,7 +6,11 @@ const find = id => document.getElementById(id);
 const collate = new Intl.Collator('ja', { numeric: true });
 const STORE = 'roppo-reader-marks-v1';
 const SPEECH_PREFERENCES = 'roppo-speech-preferences-v1';
+const STUDY_STORE = 'roppo-study-v1';
 const CASE_BATCH = 20;
+const study = readStudyState(localStorageValue(STUDY_STORE));
+const resumeTarget = study.last;
+let readerIntent = new URL(location.href).searchParams.has('law') || new URL(location.href).searchParams.has('article');
 const defaultEditorial = { terms: [], summaries: {}, cases: [] };
 const state = {
   catalog: null, editorial: defaultEditorial, caseIndex: null, caseShards: new Map(), currentCases: [],
@@ -14,6 +19,10 @@ const state = {
   readingPattern: null, marks: loadMarks(), marker: false,
   selection: [], excerpt: [], displayedTerm: '', gesture: null, routeRequest: 0, articlePlayback: null,
 };
+
+function localStorageValue(key) {
+  try { return localStorage.getItem(key); } catch { return null; }
+}
 
 function node(tag, className = '', value = '') {
   const element = document.createElement(tag);
@@ -227,18 +236,6 @@ function loadMarks() {
   }
 }
 
-function validateMarks(input) {
-  if (!Array.isArray(input)) return [];
-  return input.slice(0, 10000).filter(item => item && typeof item.key === 'string' &&
-    item.key.length <= 320 && typeof item.text === 'string' && item.text.length > 0 && item.text.length <= 250000 &&
-    Number.isSafeInteger(item.start) && Number.isSafeInteger(item.end) && item.start >= 0 && item.end > item.start)
-    .map(item => ({
-      key: item.key, text: item.text, start: item.start, end: item.end,
-      before: typeof item.before === 'string' ? item.before.slice(-16) : '',
-      after: typeof item.after === 'string' ? item.after.slice(0, 16) : '',
-    }));
-}
-
 function saveMarks() {
   try {
     localStorage.setItem(STORE, JSON.stringify(state.marks));
@@ -262,6 +259,9 @@ const kanjiNumber = '[0-9０-９〇零一二三四五六七八九十百千万壱
 const parseFullReference = new RegExp(`^第?(${kanjiNumber})条((?:[のノ]${kanjiNumber})*)(?:第?(${kanjiNumber})項)?(?:第?(${kanjiNumber})号)?$`, 'u');
 const namedLaws = new Map([
   ['民事訴訟法', 'civil-procedure'], ['刑事訴訟法', 'criminal-procedure'], ['日本国憲法', 'constitution'],
+  ['民事訴訟', 'civil-procedure'], ['刑事訴訟', 'criminal-procedure'],
+  ['民訴法', 'civil-procedure'], ['刑訴法', 'criminal-procedure'],
+  ['民訴', 'civil-procedure'], ['刑訴', 'criminal-procedure'],
   ['民法', 'civil'], ['商法', 'commercial'], ['刑法', 'criminal'], ['憲法', 'constitution'],
 ]);
 const referencePattern = new RegExp(`(?:${[...namedLaws.keys()].join('|')})?第${kanjiNumber}条(?:[のノ]${kanjiNumber})*(?:第${kanjiNumber}項)?(?:第${kanjiNumber}号)?`, 'gu');
@@ -334,10 +334,81 @@ function currentRoute() {
 
 async function navigate(lawId, articleId = '1', partId = '', { automatic = false } = {}) {
   if (!automatic) stopArticlePlayback();
+  searchRequest++;
+  readerIntent = true;
   const url = routeURL(lawId, articleId, partId);
   if (url.href !== location.href) history.pushState({}, '', url);
   find('search-results').hidden = true;
   await showRoute(!automatic, automatic);
+}
+
+function currentStudyEntry(part = currentRoute().partId) {
+  if (!state.law || !state.article) return null;
+  const partLabel = state.article.parts.find(item => item.id === part)?.label || part;
+  return {
+    law: state.law.id, article: state.article.id, part,
+    label: `${state.law.title} ${state.article.title}${part ? ` ${partLabel}` : ''}${state.article.caption ? `（${state.article.caption}）` : ''}`,
+  };
+}
+
+function saveStudy() {
+  try { localStorage.setItem(STUDY_STORE, JSON.stringify(study)); return true; }
+  catch { report('読書位置・しおりを端末に保存できませんでした。ブラウザの保存設定を確認してください。'); return false; }
+}
+
+function renderStudy() {
+  const current = currentStudyEntry();
+  const control = find('bookmark-article');
+  if (control && current) {
+    const saved = study.bookmarks.some(entry => bookmarkKey(entry) === bookmarkKey(current));
+    control.setAttribute('aria-pressed', String(saved));
+    control.setAttribute('aria-label', saved ? 'この条文のしおりを外す' : 'この条文にしおりを挟む');
+    control.title = saved ? 'この条文のしおりを外す' : 'この条文にしおりを挟む';
+    const label = control.querySelector('[data-bookmark-label]');
+    if (label) label.textContent = saved ? 'しおり保存済み' : 'しおり';
+  }
+  const resume = find('resume-reading');
+  if (resume) {
+    resume.hidden = !resumeTarget || (current && bookmarkKey(current) === bookmarkKey(resumeTarget));
+    if (resumeTarget) {
+      resume.title = `前回の続き：${resumeTarget.label}`;
+      resume.setAttribute('aria-label', `前回の続き：${resumeTarget.label}`);
+      if (resume.tagName === 'A') resume.href = routeURL(resumeTarget.law, resumeTarget.article, resumeTarget.part);
+    }
+  }
+  const holder = find('saved-articles');
+  if (holder) {
+    holder.replaceChildren();
+    if (!study.bookmarks.length) holder.append(node('p', 'saved-empty result-context', '気になる条文にしおりを挟むと、ここからすぐに開けます。'));
+    for (const entry of study.bookmarks) {
+      const row = node('div', 'saved-article');
+      const remove = button('外す', () => {
+        study.bookmarks = study.bookmarks.filter(item => bookmarkKey(item) !== bookmarkKey(entry));
+        saveStudy();
+        renderStudy();
+      }, 'text-action saved-remove');
+      remove.setAttribute('aria-label', `${entry.label}のしおりを外す`);
+      row.append(readerLink(entry.law, entry.article, entry.label, 'saved-link', entry.part), remove);
+      holder.append(row);
+    }
+  }
+}
+
+function recordReading(part) {
+  if (readerIntent || !study.last) study.last = currentStudyEntry(part);
+  // Reading stays usable when private mode or a full device blocks storage.
+  try { localStorage.setItem(STUDY_STORE, JSON.stringify(study)); } catch { /* Only explicit saves announce failure. */ }
+  const position = state.law.articles.indexOf(state.article) + 1;
+  const total = state.law.articles.length;
+  const progress = find('reading-progress');
+  if (progress) {
+    progress.max = total;
+    progress.value = position;
+    progress.setAttribute('aria-valuetext', `${total}項目中${position}番目`);
+  }
+  const label = find('reading-progress-label');
+  if (label) label.textContent = `法令内 ${position.toLocaleString('ja-JP')} / ${total.toLocaleString('ja-JP')} 項目`;
+  renderStudy();
 }
 
 function fetchJSON(path) {
@@ -465,25 +536,6 @@ function termTokens(text, detectLinks) {
 
 function isCurrentMark(mark, block) {
   return mark.key === block.key;
-}
-
-function findMarkRange(mark, text) {
-  if (text.slice(mark.start, mark.end) === mark.text &&
-      (!mark.before || text.slice(mark.start - mark.before.length, mark.start) === mark.before) &&
-      (!mark.after || text.slice(mark.end, mark.end + mark.after.length) === mark.after)) {
-    return [mark.start, mark.end];
-  }
-  const first = text.indexOf(mark.text);
-  if (first < 0) return null;
-  const next = text.indexOf(mark.text, first + 1);
-  if (next < 0) return [first, first + mark.text.length];
-  const anchored = `${mark.before}${mark.text}${mark.after}`;
-  const start = text.indexOf(anchored);
-  if (start >= 0 && (mark.before || mark.after) && text.indexOf(anchored, start + 1) < 0) {
-    const match = start + mark.before.length;
-    return [match, match + mark.text.length];
-  }
-  return null;
 }
 
 function renderMarkable(block) {
@@ -726,6 +778,11 @@ async function showRoute(moveFocus = false, automatic = false) {
     const article = requested ||
       law.articles.find(item => item.id === '1') || law.articles[0];
     if (!article) throw new Error('no articles');
+    const validPart = route.partId && article.parts.some(part => part.id === route.partId) ? route.partId : '';
+    if (law.id !== route.lawId || article.id !== route.articleId || validPart !== route.partId) {
+      history.replaceState({}, '', routeURL(law.id, article.id, validPart));
+    }
+    finishGesture();
     const changed = law.id !== state.law?.id || article.id !== state.article?.id;
     if (changed || !state.article) {
       setSelection([]);
@@ -767,6 +824,7 @@ async function showRoute(moveFocus = false, automatic = false) {
       renderSummary(prefix);
       loadCases(law, article);
     }
+    recordReading(validPart);
     if (!requested) report(`${law.title}に指定の条番号がありません。${article.title}を表示しました。`);
     else if (route.partId) {
       const target = document.getElementById(`part-${route.partId}`);
@@ -799,20 +857,25 @@ function markPartActive(id) {
 
 function searchData(query, laws) {
   const compact = normalized(query);
+  if (!compact) return [];
   const exactLaw = state.catalog.laws.find(law => normalized(law.title) === compact || law.id === namedLaws.get(compact));
   const qualified = state.catalog.laws.find(law => compact.startsWith(normalized(law.title)));
-  const shortLaw = compact.startsWith('憲法') ? state.catalog.laws.find(law => law.id === 'constitution') : null;
-  const typedLaw = qualified || shortLaw;
-  const typedRef = parseReference(typedLaw ? compact.slice(qualified ? normalized(qualified.title).length : '憲法'.length) : compact);
+  const alias = [...namedLaws.keys()].find(name => compact.startsWith(name));
+  const aliasLaw = alias ? state.catalog.laws.find(law => law.id === namedLaws.get(alias)) : null;
+  const typedLaw = qualified || aliasLaw;
+  const typedRef = parseReference(typedLaw ? compact.slice(qualified ? normalized(qualified.title).length : alias.length) : compact);
   const results = [];
   if (exactLaw) {
     const law = laws.find(entry => entry.id === exactLaw.id);
     for (const article of law?.articles || []) results.push({ law, article, sample: article.parts[0]?.text || '' });
     return results;
   }
-  const keywords = query.trim().normalize('NFKC').toLowerCase().split(/\s+/u).map(normalized).filter(Boolean);
+  const lawPrefix = qualified ? normalized(qualified.title) : alias;
+  const searchable = typedLaw ? query.normalize('NFKC').trim().replace(
+    new RegExp(`^${[...lawPrefix].map(escapeRegex).join('[\\s・･]*')}`, 'u'), '') : query;
+  const keywords = searchable.trim().normalize('NFKC').toLowerCase().split(/\s+/u).map(normalized).filter(Boolean);
   for (const law of laws) {
-    if (typedRef && typedLaw && law.id !== typedLaw.id) continue;
+    if (typedLaw && law.id !== typedLaw.id) continue;
     const target = typedRef ? resolveArticle(law, typedRef.article) : null;
     for (const article of law.articles) {
       if (typedRef) {
@@ -827,7 +890,7 @@ function searchData(query, laws) {
       if (!keywords.every(word => intro.includes(word) || matches.some(text => text.includes(word)))) continue;
       const index = matches.findIndex(text => keywords.some(word => text.includes(word)));
       const part = article.parts[index];
-      results.push({ law, article, part, sample: part?.text || article.parts[0]?.text || '' });
+      results.push({ law, article, part, sample: part?.text || article.parts[0]?.text || '', query: searchable });
     }
   }
   if (typedRef && !typedLaw) results.sort((first, second) => Number(second.law.id === state.law?.id) - Number(first.law.id === state.law?.id));
@@ -844,10 +907,12 @@ async function submitSearch(event) {
   const holder = find('search-results');
   const request = ++searchRequest;
   if (!query) {
+    holder.removeAttribute('aria-busy');
     holder.hidden = true;
     return;
   }
   holder.hidden = false;
+  holder.setAttribute('aria-busy', 'true');
   holder.replaceChildren(node('p', 'result-context', '六法を検索しています…'));
   try {
     const results = await Promise.allSettled(state.catalog.laws.map(law => getLaw(law.id)));
@@ -856,7 +921,7 @@ async function submitSearch(event) {
     const matches = searchData(query, loaded);
     const heading = node('div', 'result-heading');
     heading.append(node('strong', '', `「${query}」 ${matches.length.toLocaleString('ja-JP')}件`),
-      button('閉じる', () => { holder.hidden = true; find('query').focus(); }));
+      button('閉じる', () => { searchRequest++; holder.hidden = true; find('query').focus(); }));
     holder.replaceChildren(heading);
     if (loaded.length !== state.catalog.laws.length) {
       holder.append(node('p', 'result-context', `${loaded.length}法のデータを検索しました。`));
@@ -874,7 +939,7 @@ async function submitSearch(event) {
         const label = `${result.law.title} ${result.article.title}${result.part?.label ? ` ${result.part.label}` : ''}${result.article.caption ? `　${result.article.caption}` : ''}`;
         const item = readerLink(result.law.id, result.article.id, '', 'result-item', result.part?.id || '');
         item.append(node('strong', '', label), node('span', 'result-context',
-          result.sample.length > 105 ? `${result.sample.slice(0, 105)}…` : result.sample));
+          searchExcerpt(result.sample, result.query || query)));
         content.append(item);
       }
       holder.insertBefore(content, more);
@@ -883,8 +948,11 @@ async function submitSearch(event) {
     }
     holder.append(more);
     draw();
+    holder.scrollIntoView({ block: 'start', behavior: 'instant' });
   } catch {
-    holder.replaceChildren(node('p', 'empty-state', '検索を実行できませんでした。'));
+    if (request === searchRequest) holder.replaceChildren(node('p', 'empty-state', '検索を実行できませんでした。'));
+  } finally {
+    if (request === searchRequest) holder.removeAttribute('aria-busy');
   }
 }
 
@@ -951,9 +1019,11 @@ function showExcerpt(selections) {
 function inspectBlock(block, part = false) {
   if (!block.text) return;
   if (part) {
+    readerIntent = true;
     const url = routeURL(state.law.id, state.article.id, block.part);
     if (url.href !== location.href) history.replaceState({}, '', url);
     markPartActive(block.part);
+    recordReading(block.part);
   }
   showExcerpt([makeSelection(block, 0, block.text.length)]);
 }
@@ -962,6 +1032,10 @@ function addMarks(selections) {
   const pending = selections.filter(selection => selection.text.trim() &&
     !state.marks.some(mark => mark.key === selection.key && mark.start === selection.start && mark.text === selection.text));
   if (!pending.length) return;
+  if (state.marks.length + pending.length > 10000) {
+    report('マーカーの保存上限（10,000件）に達しました。バックアップを書き出してから不要なマーカーを消してください。');
+    return;
+  }
   state.marks.push(...pending.map(({ key, text, start, end, before, after }) => ({ key, text, start, end, before, after })));
   const keys = new Set(pending.map(item => item.key));
   window.getSelection()?.removeAllRanges();
@@ -1068,6 +1142,25 @@ function wireMarkers() {
 
 function setBindings() {
   bindSpeechPreferences();
+  find('bookmark-article')?.addEventListener('click', () => {
+    const entry = currentStudyEntry();
+    if (!entry) return;
+    const key = bookmarkKey(entry);
+    const saved = study.bookmarks.some(item => bookmarkKey(item) === key);
+    if (saved) study.bookmarks = study.bookmarks.filter(item => bookmarkKey(item) !== key);
+    else {
+      if (study.bookmarks.length >= 100) { report('しおりは100件まで保存できます。不要なしおりを外してください。'); return; }
+      study.bookmarks.unshift(entry);
+    }
+    if (saveStudy()) report(saved ? 'しおりを外しました。' : 'この条文にしおりを挟みました。');
+    renderStudy();
+  });
+  find('resume-reading')?.addEventListener('click', event => {
+    if (!resumeTarget) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    navigate(resumeTarget.law, resumeTarget.article, resumeTarget.part);
+  });
   find('site-search').addEventListener('submit', submitSearch);
   find('article-select').addEventListener('change', event => {
     if (state.law) navigate(state.law.id, event.target.value);
@@ -1163,20 +1256,27 @@ function setBindings() {
       if (data.format !== 'roppo-marks' || data.version !== 1 || !Array.isArray(data.marks)) throw new Error('format');
       const importMarks = validateMarks(data.marks);
       const known = new Set(state.marks.map(mark => JSON.stringify([mark.key, mark.start, mark.text])));
+      let added = 0;
+      let skipped = 0;
       for (const mark of importMarks) {
         const signature = JSON.stringify([mark.key, mark.start, mark.text]);
         if (!known.has(signature)) {
+          if (state.marks.length >= 10000) { skipped++; continue; }
+          added++;
           state.marks.push(mark);
           known.add(signature);
         }
       }
       for (const block of state.blocks.values()) renderMarkable(block);
-      if (saveMarks()) report('マーカーのバックアップを読み込みました。');
+      if (saveMarks()) report(`${added}件のマーカーを読み込みました。${skipped ? `保存上限のため${skipped}件は追加していません。` : '重複するマーカーはそのまま保持しています。'}`);
     } catch {
       report('マーカーのバックアップを読み込めませんでした。');
     }
   });
   window.addEventListener('popstate', () => {
+    readerIntent = true;
+    searchRequest++;
+    find('search-results').hidden = true;
     stopArticlePlayback();
     showRoute(true);
   });

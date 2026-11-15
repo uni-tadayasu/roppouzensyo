@@ -26,6 +26,7 @@
   <link rel="preload" href="assets/cg/archive-mobile.webp" as="image" media="(max-width: 650px)" fetchpriority="high">
   <script src="app.js" type="module"></script>
   <script src="offline.js" type="module"></script>
+  <script src="reading-preferences.js" type="module"></script>
 </head>
 <body>
   <svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -71,6 +72,7 @@
   <section class="hero" aria-labelledby="hero-heading">
     <div class="page-width hero-inner">
       <div class="hero-content">
+        <p class="hero-kicker">日本の法を、手元の一冊に。</p>
         <h1 id="hero-heading">六法書架</h1>
         <p class="hero-lead">条文を読む。判例を引く。声で聴く。</p>
         <form class="site-search" id="site-search" role="search">
@@ -84,6 +86,7 @@
           <button type="submit" form="site-search" data-search="民法第709条">民法709条</button>
           <button type="submit" form="site-search" data-search="刑法第199条">刑法199条</button>
         </div>
+        <button class="resume-reading" id="resume-reading" type="button" hidden><svg class="icon" aria-hidden="true"><use href="#i-book"/></svg>前回の続きから読む</button>
       </div>
     </div>
   </section>
@@ -118,6 +121,10 @@
             <button class="control toc-mobile-toggle" id="toc-mobile-toggle" type="button" aria-expanded="false" aria-controls="toc-list">目次</button>
           </div>
           <nav id="toc-list" class="toc-list" aria-label="選択中の法令の目次"></nav>
+          <details class="saved-shelf" open>
+            <summary>しおり</summary>
+            <div id="saved-articles"><p class="empty-state">気になる条文を、しおりで手元に。</p></div>
+          </details>
         </div>
       </aside>
 
@@ -131,6 +138,10 @@
             </a>
           </div>
           <p id="article-caption" class="article-caption" hidden></p>
+          <div class="article-study-row">
+            <div class="reading-progress-wrap"><label id="reading-progress-label" for="reading-progress">法令内の位置</label><progress id="reading-progress" max="100" value="0"></progress></div>
+            <button class="control bookmark-button" id="bookmark-article" type="button" aria-pressed="false"><span data-bookmark-label>しおり</span></button>
+          </div>
         </header>
 
         <div class="reader-controls" role="group" aria-labelledby="audio-title">
@@ -195,6 +206,13 @@
         </div>
         <p id="reading-feedback" class="reading-feedback" role="status" aria-live="polite"></p>
 
+        <div class="display-controls" role="group" aria-label="本文の表示設定">
+          <label for="reader-font-size">文字サイズ</label>
+          <select id="reader-font-size"><option value="standard">標準</option><option value="large">大きめ</option><option value="largest">特大</option></select>
+          <label for="reader-font">書体</label>
+          <select id="reader-font"><option value="serif">明朝</option><option value="sans">ゴシック</option></select>
+          <button id="focus-reading" class="control" type="button" aria-pressed="false">集中して読む</button>
+        </div>
         <div class="reader-content">
           <div class="legend" aria-label="用語の下線">
             <span class="legend-label">用語の意味を表示</span>
@@ -266,6 +284,8 @@
       </div>
     </div>
   </footer>
+
+  <div class="focus-dock" id="focus-dock" hidden><span>集中表示</span><a href="#article-heading">条文の先頭へ</a><button id="exit-focus" type="button" class="control">通常表示に戻る</button></div>
 
   <dialog id="term-dialog" aria-labelledby="term-title">
     <div class="dialog-inner">

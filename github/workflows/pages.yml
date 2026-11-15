@@ -2,40 +2,64 @@ name: 六法書架を公開・更新
 
 on:
   push:
+    branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: github-pages
-  cancel-in-progress: false
+  group: roppo-pages-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
-    if: github.ref_name == github.event.repository.default_branch
+    name: 品質検証と公開データ作成
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pages: read
     steps:
       - name: ソースを取得
         uses: actions/checkout@v5
+      - name: Node.jsを準備
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: 読書・音声・オフラインの回帰テスト
+        run: node --test tests/*.test.mjs
+      - name: 公開データ検証の回帰テスト
+        run: python3 -m unittest discover -s tests -p 'test_*.py'
       - name: GitHub Pagesの設定を取得
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         id: pages
         uses: actions/configure-pages@v5
       - name: e-Govから六法を更新
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         run: python3 scripts/update-laws.py
       - name: 公開用ファイルを作成
         env:
-          ROPPO_SITE_URL: ${{ steps.pages.outputs.base_url }}
+          ROPPO_SITE_URL: ${{ steps.pages.outputs.base_url || format('https://{0}.github.io/{1}/', github.repository_owner, github.event.repository.name) }}
         run: python3 scripts/build-site.py --output _site --site-url "$ROPPO_SITE_URL"
+      - name: 法令データ・リンク・オフライン整合性を検証
+        run: python3 scripts/validate-site.py _site
       - name: 公開ファイルを登録
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v4
         with:
           path: _site
   deploy:
+    name: GitHub Pagesへ公開
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: build
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

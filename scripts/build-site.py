@@ -15,7 +15,7 @@ ES = html.escape
 EDITION_COVERS = {'constitution', 'civil', 'commercial', 'criminal', 'civil-procedure', 'criminal-procedure'}
 CORE = {
     'index.html', 'styles.css', 'app.js', 'speech.js', 'offline.js', 'coverage.html',
-    'manifest.webmanifest', 'assets/icon.svg', 'assets/favicon.ico',
+    'reader-state.mjs', 'reading-preferences.js', 'manifest.webmanifest', 'assets/icon.svg', 'assets/favicon.ico',
     'assets/icon-192.png', 'assets/icon-512.png', 'assets/icon-maskable.png',
     'data/catalog.json', 'data/editorial.json', 'edition.css', 'tts/voice.js', 'tts/reading-audio.js',
 }
@@ -150,7 +150,8 @@ def build(output, site_url):
     page = re.sub(r'(<meta (?:property="og:image"|name="twitter:image") content=")[^"]*(">)',
                   lambda m: m[1] + ES(base + 'assets/og.png' if base else 'assets/og.png') + m[2], page)
     if base:
-        block = f'{index_start}\n<link rel="canonical" href="{ES(base)}">\n<meta property="og:url" content="{ES(base)}">\n{index_end}\n'
+        structured = json.dumps({'@context': 'https://schema.org', '@type': 'WebSite', 'name': '六法書架', 'url': base, 'inLanguage': 'ja', 'description': '基本六法の原文・解説・関連判例を、検索と朗読で参照する法令書庫。'}, ensure_ascii=False).replace('<', r'<')
+        block = f'{index_start}\n<link rel="canonical" href="{ES(base)}">\n<meta property="og:url" content="{ES(base)}">\n<script type="application/ld+json">{structured}</script>\n{index_end}\n'
         page = page.replace('</head>', block + '</head>', 1)
         sitemap = ET.Element('urlset', {'xmlns': 'http://www.sitemaps.org/schemas/sitemap/0.9'})
         for path in ['', 'coverage.html', *(f'read/{law["id"]}.html' for law in catalog['laws'])]:

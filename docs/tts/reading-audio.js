@@ -19,6 +19,7 @@ let bgmVolume = 0.22;
 let playbackSession;
 let previousSessionType;
 let silencePlayer;
+let audioAttempt = 0;
 
 function requestMediaPlayback() {
   try {
@@ -124,8 +125,8 @@ function beginMusic() {
 }
 
 export function setReadingBgm({ enabled, volume }) {
-  bgmEnabled = enabled;
-  bgmVolume = Math.max(0, Math.min(1, volume));
+  bgmEnabled = enabled === true;
+  if (Number.isFinite(volume)) bgmVolume = Math.max(0, Math.min(1, volume));
   beginMusic();
   rampMusic(0.15);
 }
@@ -137,24 +138,39 @@ export function setReadingSpeechActive(active) {
 }
 
 export async function startReadingAudio() {
+  const attempt = ++audioAttempt;
   if (stopTimer !== undefined) {
     clearTimeout(stopTimer);
     stopTimer = undefined;
   }
   if (!playing && !playbackSession && (!silencePlayer || silencePlayer.paused)) requestMediaPlayback();
   playing = true;
-  const Audio = window.AudioContext || window.webkitAudioContext;
-  if (!Audio) throw new Error('このブラウザーはWeb音声に対応していません。');
-  context ||= new Audio();
-  const resume = context.resume();
-  beginMusic();
-  rampMusic(0.22);
-  await resume;
-  if (context.state !== 'running') throw new Error('ブラウザーが音声再生を停止しています。');
-  return context;
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) throw new Error('このブラウザーはWeb音声に対応していません。');
+    context ||= new AudioContext();
+    const resume = context.resume();
+    beginMusic();
+    rampMusic(0.22);
+    await resume;
+    if (context.state !== 'running') throw new Error('ブラウザーが音声再生を停止しています。');
+    return context;
+  } catch (error) {
+    // An unsuccessful start must not retain the OS media session or leave
+    // optional music playing. A newer start owns its own cleanup.
+    if (attempt === audioAttempt) {
+      playing = false;
+      speechActive = false;
+      stopMusic();
+      releaseMediaPlayback();
+      if (context?.state === 'running') context.suspend().catch(() => {});
+    }
+    throw error;
+  }
 }
 
 export function stopReadingAudio() {
+  audioAttempt += 1;
   if (!playing) return;
   playing = false;
   speechActive = false;

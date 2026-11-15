@@ -27,6 +27,9 @@ LAWS = {
     "criminal-procedure": ("323AC0000000131", "刑事訴訟法"),
 }
 GROUPS = {"Part", "Chapter", "Section", "Subsection", "Division"}
+# The table of contents is regenerated from provision headings. Appendices need
+# explicit extraction support before they can safely join an offline snapshot.
+LAW_BODY_ELEMENTS = {"LawTitle", "EnactStatement", "TOC", "Preamble", "MainProvision", "SupplProvision"}
 ITEMS = {"Item", *(f"Subitem{level}" for level in range(1, 11))}
 JST = timezone(timedelta(hours=9))
 
@@ -196,7 +199,14 @@ def transform(slug, law_id, expected_title, data):
     if data.get("attached_files_info"):
         raise ValueError(f"{expected_title} contains attachments requiring offline packaging")
     law_body = first(data["law_full_text"], "LawBody")
+    if law_body is None:
+        raise ValueError(f"LawBody is missing for {expected_title}")
+    unexpected = sorted({child["tag"] for child in children(law_body)} - LAW_BODY_ELEMENTS)
+    if unexpected:
+        raise ValueError(f"Unsupported LawBody elements in {expected_title}: {', '.join(unexpected)}")
     main = first(law_body, "MainProvision")
+    if main is None:
+        raise ValueError(f"MainProvision is missing for {expected_title}")
     main_articles = list(extract_articles(main))
     if not main_articles or main_articles[0]["id"] != "1":
         raise ValueError(f"Main provisions missing for {expected_title}")
