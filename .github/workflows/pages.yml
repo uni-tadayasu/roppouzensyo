@@ -46,6 +46,12 @@ jobs:
         run: python3 scripts/build-site.py --output _site --site-url "$ROPPO_SITE_URL"
       - name: 法令データ・リンク・オフライン整合性を検証
         run: python3 scripts/validate-site.py _site
+      - name: ブラウザ検証を準備
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: PC・スマートフォンの操作を検証
+        run: npm run test:browser
       - name: 公開ファイルを登録
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v4

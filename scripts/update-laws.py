@@ -83,14 +83,79 @@ def make_part(part_id, label, display, reading, depth):
     return part
 
 
+def table_rows(table):
+    """Expand shared cells so each flattened row retains its legal context."""
+    rows = children(table, "TableHeaderRow", "TableRow")
+    if len(rows) != len(children(table)) or not rows:
+        raise ValueError("Unsupported or empty Table")
+    grid = []
+    pending = {}
+    width = None
+    for position, row in enumerate(rows):
+        cells = children(row, "TableHeaderColumn", "TableColumn")
+        if len(cells) != len(children(row)):
+            raise ValueError(f"Unsupported table row element: {row['tag']}")
+        slots = {column: cell for column, (cell, end) in pending.items() if end > position}
+        pending = {column: value for column, value in pending.items() if value[1] > position}
+        column = 0
+        for cell in cells:
+            while column in slots:
+                column += 1
+            spans = []
+            for attribute in ("rowspan", "colspan"):
+                value = cell["attr"].get(attribute, "1")
+                if not re.fullmatch(r"[1-9]\d*", value):
+                    raise ValueError(f"Invalid table {attribute}: {value!r}")
+                spans.append(int(value))
+            row_span, column_span = spans
+            if position + row_span > len(rows):
+                raise ValueError("Table rowspan extends beyond the final row")
+            for offset in range(column_span):
+                slot = column + offset
+                if slot in slots:
+                    raise ValueError("Overlapping table cells")
+                slots[slot] = cell
+                if row_span > 1:
+                    pending[slot] = (cell, position + row_span)
+            column += column_span
+        if width is None:
+            width = len(slots)
+        if not width or set(slots) != set(range(width)):
+            raise ValueError("Inconsistent table column count")
+        grid.append([slots[column] for column in range(width)])
+
+    # e-Gov also represents vertically shared cells as bordered cells with a
+    # blank continuation and no horizontal dividing line. An unbordered table
+    # is not a merged cell: both side borders must be present on both rows.
+    resolved = []
+    for position, row in enumerate(grid):
+        resolved_row = []
+        for column, cell in enumerate(row):
+            source = cell
+            if position and not text(cell) and not text(cell, reading=True):
+                previous = grid[position - 1][column]
+                if (cell["attr"].get("BorderTop") == "none"
+                        and previous["attr"].get("BorderBottom") == "none"
+                        and all(node["attr"].get(border) == "solid"
+                                for node in (cell, previous)
+                                for border in ("BorderLeft", "BorderRight"))):
+                    source = resolved[position - 1][column]
+            resolved_row.append(source)
+        resolved.append(resolved_row)
+        # A horizontal span occupies several columns but is read only once.
+        yield [cell for column, cell in enumerate(resolved_row)
+               if column == 0 or cell is not resolved_row[column - 1]]
+
+
 def table_parts(node, part_id, depth):
     parts = []
     label = text(first(node, "TableStructTitle"))
     table = first(node, "Table")
     if table is None:
         raise ValueError("TableStruct is missing its Table")
-    for position, row in enumerate(children(table, "TableHeaderRow", "TableRow"), 1):
-        cells = children(row, "TableHeaderColumn", "TableColumn")
+    if any(child["tag"] not in {"TableStructTitle", "Table"} for child in children(node)):
+        raise ValueError("Unsupported TableStruct element")
+    for position, cells in enumerate(table_rows(table), 1):
         part = make_part(
             f"{part_id}.{position}",
             f"{label or '表'} 第{position}行",

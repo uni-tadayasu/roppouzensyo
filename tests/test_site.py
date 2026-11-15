@@ -35,6 +35,15 @@ class ReleaseValidationTests(unittest.TestCase):
                        'parts': [{'id': '1', 'text': 'テスト用の原文です。'}]}
             self.json(f'data/{slug}.json', {**metadata, 'articles': [article]})
         self.json('data/catalog.json', {'updated': '2000-01-01', 'laws': laws})
+        self.case = {
+            'id': 'case-1', 'title': 'テスト判決', 'court': '最高裁判所',
+            'date': '2000-01-01', 'summary': 'テスト用の判決要旨です。',
+            'summaryKind': '裁判所の裁判要旨',
+            'source': 'https://www.courts.go.jp/hanrei/1/detail2/index.html',
+            'articles': [{'law': 'civil', 'id': '1', 'relation': '裁判所の参照法条'}],
+        }
+        self.json('data/cases/index.json', {'count': 1, 'shards': {'civil': {'1': 'civil-1.json'}}})
+        self.json('data/cases/civil-1.json', {'cases': [self.case]})
         self.manifest()
 
     def write(self, name, value):
@@ -143,6 +152,67 @@ class ReleaseValidationTests(unittest.TestCase):
         manifest['revision'] = 'stale'
         self.json('offline-manifest.json', manifest)
         self.assertError('revision does not match')
+
+    def test_case_shard_paths_are_safe_and_must_exist(self):
+        index = self.read_json('data/cases/index.json')
+        for filename in ('../civil.json', '/outside.json', 'https://example.com/cases.json', 'index.json'):
+            with self.subTest(filename=filename):
+                index['shards']['civil']['1'] = filename
+                self.json('data/cases/index.json', index)
+                self.manifest()
+                self.assertError('invalid shard filename')
+        index['shards']['civil']['1'] = 'missing.json'
+        self.json('data/cases/index.json', index)
+        self.manifest()
+        self.assertError('data/cases/missing.json: cannot read JSON')
+
+    def test_valid_hashes_do_not_hide_invalid_case_json(self):
+        self.write('data/cases/civil-1.json', '{broken')
+        self.manifest()
+        self.assertError('cannot read JSON')
+
+    def test_case_counts_and_duplicate_ids(self):
+        self.json('data/cases/civil-1.json', {'cases': [self.case, self.case]})
+        index = self.read_json('data/cases/index.json')
+        index['count'] = 2
+        self.json('data/cases/index.json', index)
+        self.manifest()
+        self.assertError('duplicate case ID')
+        self.assertError('unique case count differs')
+
+    def test_case_references_must_match_existing_provisions(self):
+        self.case['articles'][0]['id'] = '9999'
+        self.json('data/cases/civil-1.json', {'cases': [self.case]})
+        self.manifest()
+        self.assertError('unknown article civil/9999')
+        self.assertError('incomplete case mapping for civil/1')
+
+    def test_case_must_be_reachable_through_each_index_mapping(self):
+        # Each related provision loads only its designated shard. A case present
+        # elsewhere in the release must not silently disappear from that view.
+        self.case['articles'].append({'law': 'constitution', 'id': '1', 'relation': '裁判所の参照法条'})
+        self.json('data/cases/civil-1.json', {'cases': [self.case]})
+        index = self.read_json('data/cases/index.json')
+        index['shards']['constitution'] = {'1': 'constitution-1.json'}
+        self.json('data/cases/index.json', index)
+        self.json('data/cases/constitution-1.json', {'cases': []})
+        self.manifest()
+        self.assertError('incomplete case mapping for constitution/1')
+        self.json('data/cases/constitution-1.json', {'cases': [self.case]})
+        self.manifest()
+        self.assertEqual(self.errors(), [])
+        other = dict(self.case, summary='別の要旨')
+        self.json('data/cases/constitution-1.json', {'cases': [other]})
+        self.manifest()
+        self.assertError('inconsistent copies of case')
+
+    def test_malformed_case_metadata_fails_cleanly(self):
+        self.json('data/cases/civil-1.json', {'cases': [None, {'id': 'case-1', 'articles': [None, {'law': []}]}]})
+        self.manifest()
+        self.assertError('invalid case object or ID')
+        self.assertError('invalid article reference')
+        self.assertError('missing summaryKind')
+        self.assertError('date must be an ISO date')
 
 
 if __name__ == '__main__':

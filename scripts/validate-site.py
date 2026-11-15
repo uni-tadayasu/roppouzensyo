@@ -7,6 +7,7 @@ whether a snapshot is the newest revision available from e-Gov.
 from __future__ import annotations
 
 import argparse
+from collections import defaultdict
 from datetime import date
 import hashlib
 from html.parser import HTMLParser
@@ -81,6 +82,8 @@ class Validator:
         self.entries = {}
         self.documents = {}
         self.article_count = 0
+        self.law_articles = {}
+        self.case_count = 0
 
     def error(self, message):
         self.errors.append(message)
@@ -212,6 +215,88 @@ class Validator:
             if '1' not in seen or main_count != metadata.get('articles'):
                 self.error(f'{name}: main article count differs from catalog or first article is absent')
             self.article_count += len(articles)
+            self.law_articles[slug] = seen
+
+    def cases(self):
+        """Check the dynamic references that HTML/link validation cannot see."""
+        index_name = 'data/cases/index.json'
+        index = self.read_json(index_name)
+        if not isinstance(index, dict) or not isinstance(index.get('shards'), dict):
+            self.error(f'{index_name}: expected a shards object')
+            return
+        mappings = {}
+        shard_names = set()
+        for law, articles in index['shards'].items():
+            if law not in LAWS or not isinstance(articles, dict):
+                self.error(f'{index_name}: invalid law mapping {law!r}')
+                continue
+            for article, filename in articles.items():
+                if article not in self.law_articles.get(law, set()):
+                    self.error(f'{index_name}: unknown article {law}/{article}')
+                if not isinstance(filename, str) or not re.fullmatch(r'[a-zA-Z0-9_-]+\.json', filename) or filename == 'index.json':
+                    self.error(f'{index_name}: invalid shard filename {filename!r}')
+                    continue
+                mappings[(law, article)] = filename
+                shard_names.add(filename)
+        identities = {}
+        expected = defaultdict(set)
+        available = defaultdict(set)
+        for filename in sorted(shard_names):
+            source = f'data/cases/{filename}'
+            path = self.root / source
+            if not self.inside(path):
+                self.error(f'{source}: shard escapes release')
+                continue
+            shard = self.read_json(source)
+            if not isinstance(shard, dict) or not isinstance(shard.get('cases'), list):
+                self.error(f'{source}: expected a cases array')
+                continue
+            seen = set()
+            for case in shard['cases']:
+                if not isinstance(case, dict) or not isinstance(case.get('id'), str) or not SAFE_ID.fullmatch(case['id']):
+                    self.error(f'{source}: invalid case object or ID')
+                    continue
+                identity = case['id']
+                if identity in seen:
+                    self.error(f'{source}: duplicate case ID {identity}')
+                seen.add(identity)
+                digest = hashlib.sha256(json.dumps(case, ensure_ascii=False, sort_keys=True).encode()).digest()
+                if identity in identities and identities[identity] != digest:
+                    self.error(f'{source}: inconsistent copies of case {identity}')
+                identities[identity] = digest
+                for field in ('title', 'court', 'date', 'summary', 'summaryKind', 'source'):
+                    if not isinstance(case.get(field), str) or not case[field].strip():
+                        self.error(f'{source} case {identity}: missing {field}')
+                try:
+                    date.fromisoformat(case.get('date'))
+                except (ValueError, TypeError):
+                    self.error(f'{source} case {identity}: date must be an ISO date')
+                links = case.get('articles')
+                if not isinstance(links, list) or not links:
+                    self.error(f'{source} case {identity}: missing article references')
+                    continue
+                relations = set()
+                for link in links:
+                    if not isinstance(link, dict) or not isinstance(link.get('law'), str) or not isinstance(link.get('id'), str):
+                        self.error(f'{source} case {identity}: invalid article reference')
+                        continue
+                    pair = (link['law'], link['id'])
+                    if pair in relations:
+                        self.error(f'{source} case {identity}: duplicate article reference {pair}')
+                    relations.add(pair)
+                    if pair[1] not in self.law_articles.get(pair[0], set()):
+                        self.error(f'{source} case {identity}: unknown article {pair[0]}/{pair[1]}')
+                    if not isinstance(link.get('relation'), str) or not link['relation'].strip():
+                        self.error(f'{source} case {identity}: missing relation description')
+                    expected[pair].add(identity)
+                    if mappings.get(pair) == filename:
+                        available[pair].add(identity)
+        for pair in sorted(set(mappings) | set(expected)):
+            if not expected[pair] or expected[pair] != available[pair]:
+                self.error(f'{index_name}: incomplete case mapping for {pair[0]}/{pair[1]}')
+        self.case_count = len(identities)
+        if type(index.get('count')) is not int or index['count'] != self.case_count:
+            self.error(f'{index_name}: unique case count differs from shards')
 
     def reference(self, source, value, *, check_fragment=True, require_core=False):
         try:
@@ -282,6 +367,7 @@ class Validator:
     def run(self):
         self.manifest()
         self.laws()
+        self.cases()
         self.references()
         return self.errors
 
@@ -296,7 +382,7 @@ def main():
         for error in errors:
             print(f'ERROR: {error}')
         raise SystemExit(1)
-    print(f'Validated {len(validator.entries)} release files, {len(LAWS)} laws and {validator.article_count} provisions.')
+    print(f'Validated {len(validator.entries)} release files, {len(LAWS)} laws, {validator.article_count} provisions and {validator.case_count} cases.')
 
 
 if __name__ == '__main__':
