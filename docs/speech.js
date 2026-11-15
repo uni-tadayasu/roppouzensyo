@@ -95,7 +95,13 @@ export function setupSpeech({ select, rate, volume, stop, report, onStop }) {
           if (status === 'playing') setReadingSpeechActive(true);
           report(status === 'playing' ? `${builtIn.label}で読み上げています。` : '内蔵音声を準備しています…');
         },
-      }).then(complete).catch(error => fail('内蔵音声を開始できませんでした。対応するブラウザーで開き、オフライン保存の完了後にお試しください。', error));
+      }).then(complete).catch(error => {
+        if (session !== generation) return;
+        console.warn('[六法書架] 内蔵音声の再生に失敗しました。', error);
+        const timeoutMessage = '音声の準備が時間内に完了しませんでした。接続またはオフライン保存を確認し、もう一度お試しください。';
+        fail(error?.message === timeoutMessage ? timeoutMessage :
+          '内蔵音声を開始できませんでした。対応するブラウザーで開き、オフライン保存の完了後にお試しください。', error);
+      });
       return;
     }
     const voice = voices.find(item => item.voiceURI === select.value);
