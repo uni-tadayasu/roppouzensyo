@@ -14,6 +14,9 @@ export function setupSpeech({ select, rate, volume, stop, report, onStop }) {
   let voices = [];
   let active = null;
   let generation = 0;
+  const voicePreferenceKey = 'roppo-speech-voice-v1';
+  let preferredVoice = '';
+  try { preferredVoice = localStorage.getItem(voicePreferenceKey) || ''; } catch { /* Optional preference. */ }
 
   function populate() {
     const oldChoice = select.value;
@@ -27,9 +30,9 @@ export function setupSpeech({ select, rate, volume, stop, report, onStop }) {
       const gender = femaleNames.test(voice.name) ? '女性' : maleNames.test(voice.name) ? '男性' : '';
       select.add(new Option(gender ? `${voice.name}（${gender}）` : voice.name, voice.voiceURI));
     }
-    if (bundled.has(oldChoice) || voices.some(voice => voice.voiceURI === oldChoice)) {
-      select.value = oldChoice;
-    }
+    const available = choice => bundled.has(choice) || voices.some(voice => voice.voiceURI === choice);
+    if (available(preferredVoice)) select.value = preferredVoice;
+    else if (available(oldChoice)) select.value = oldChoice;
     select.disabled = false;
   }
 
@@ -92,7 +95,13 @@ export function setupSpeech({ select, rate, volume, stop, report, onStop }) {
           if (status === 'playing') setReadingSpeechActive(true);
           report(status === 'playing' ? `${builtIn.label}で読み上げています。` : '内蔵音声を準備しています…');
         },
-      }).then(complete).catch(error => fail('内蔵音声を開始できませんでした。対応するブラウザーで開き、オフライン保存の完了後にお試しください。', error));
+      }).then(complete).catch(error => {
+        if (session !== generation) return;
+        console.warn('[六法書架] 内蔵音声の再生に失敗しました。', error);
+        const timeoutMessage = '音声の準備が時間内に完了しませんでした。接続またはオフライン保存を確認し、もう一度お試しください。';
+        fail(error?.message === timeoutMessage ? timeoutMessage :
+          '内蔵音声を開始できませんでした。対応するブラウザーで開き、オフライン保存の完了後にお試しください。', error);
+      });
       return;
     }
     const voice = voices.find(item => item.voiceURI === select.value);
@@ -136,6 +145,10 @@ export function setupSpeech({ select, rate, volume, stop, report, onStop }) {
     }
   }
 
+  select.addEventListener('change', () => {
+    preferredVoice = select.value;
+    try { localStorage.setItem(voicePreferenceKey, preferredVoice); } catch { /* Reading works without storage. */ }
+  });
   engine?.addEventListener('voiceschanged', populate);
   for (const control of [rate, volume]) {
     control?.addEventListener('input', syncSettings);

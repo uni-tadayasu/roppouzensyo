@@ -21,12 +21,13 @@ let playbackVolume = 1;
 let generation = 0;
 const requests = new Map();
 
-function failWorker() {
+function failWorker(error = new Error('日本語音声エンジンを起動できませんでした。')) {
   worker?.terminate();
   worker = undefined;
   selectedVoice = undefined;
   for (const request of requests.values()) {
-    request.reject(new Error('日本語音声エンジンを起動できませんでした。'));
+    clearTimeout(request.timer);
+    request.reject(error instanceof Error ? error : new Error('日本語音声エンジンを起動できませんでした。'));
   }
   requests.clear();
 }
@@ -34,23 +35,37 @@ function failWorker() {
 function workerRequest(method, ...args) {
   if (!worker) {
     worker = new Worker(new URL('browser/worker.js', directory), { type: 'module' });
-    worker.onerror = failWorker;
-    worker.onmessageerror = failWorker;
+    const owner = worker;
+    worker.onerror = () => { if (worker === owner) failWorker(); };
+    worker.onmessageerror = () => { if (worker === owner) failWorker(); };
     worker.onmessage = ({ data }) => {
+      if (worker !== owner) return;
       const request = requests.get(data.id);
       if (!request) return;
+      if (!data.ok) {
+        // A failed configure can leave the WASM module permanently rejected.
+        // Recreate it on the next attempt instead of reusing that broken state.
+        failWorker(new Error(data.error || '日本語音声の作成に失敗しました。'));
+        return;
+      }
       requests.delete(data.id);
-      if (data.ok) request.resolve(data.result);
-      else request.reject(new Error(data.error));
+      clearTimeout(request.timer);
+      request.resolve(data.result);
     };
   }
   const id = ++nextRequest;
   return new Promise((resolve, reject) => {
-    requests.set(id, { resolve, reject });
+    const timer = setTimeout(() => {
+      if (!requests.has(id)) return;
+      failWorker(new Error('音声の準備が時間内に完了しませんでした。接続またはオフライン保存を確認し、もう一度お試しください。'));
+    }, method === 'configure' ? 180000 : 45000);
+    requests.set(id, { resolve, reject, timer });
     try {
       worker.postMessage({ id, method, args });
     } catch (error) {
       requests.delete(id);
+      clearTimeout(timer);
+      failWorker(error);
       reject(error);
     }
   });
@@ -161,13 +176,13 @@ export async function playLocalVoice(text, { gender = 'female', rate = 1, volume
   if (!window.Worker || !window.WebAssembly || !window.DecompressionStream) {
     throw new Error('このブラウザーは内蔵音声に対応していません。利用できる端末音声に切り替えてください。');
   }
+  setLocalVoiceOptions({ rate, volume });
   audioContext = await startReadingAudio();
   if (current !== generation) return;
   if (!gain) {
     gain = audioContext.createGain();
     gain.connect(audioContext.destination);
   }
-  setLocalVoiceOptions({ rate, volume });
   gain.gain.cancelScheduledValues(audioContext.currentTime);
   gain.gain.setValueAtTime(playbackVolume, audioContext.currentTime);
   onStatus('loading');

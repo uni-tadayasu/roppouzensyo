@@ -21,19 +21,60 @@ async function state() {
 }
 
 async function currentManifest() {
-  const response = await fetch(manifestURL, {cache: 'no-store'});
+  const response = await timedFetch(manifestURL, {cache: 'no-store'});
   if (!response.ok) throw new Error('公開データの版を確認できませんでした。');
   const manifest = await response.json();
-  if (!manifest.revision || !Array.isArray(manifest.files) || !manifest.files.length) {
+  if (typeof manifest.revision !== 'string' || !/^[a-zA-Z0-9-]+$/.test(manifest.revision) || !Array.isArray(manifest.files) || !manifest.files.length) {
     throw new Error('公開データの一覧を読み込めませんでした。');
+  }
+  const paths = new Set();
+  for (const file of manifest.files) {
+    const url = typeof file.path === 'string' && new URL(file.path, scope);
+    if (!url || !url.href.startsWith(scope) || url.search || url.hash ||
+        file.path.startsWith('/') || file.path.split('/').some((part) => !part || part === '.' || part === '..') ||
+        !/^[a-f0-9]{64}$/.test(file.sha256) || !Number.isSafeInteger(file.bytes) || file.bytes < 0 || paths.has(url.href)) {
+      throw new Error('保存対象の一覧が正しくありません。更新を中止しました。');
+    }
+    paths.add(url.href);
   }
   return manifest;
 }
 
+async function timedFetch(url, options) {
+  const controller = new AbortController();
+  let timer;
+  const keepAlive = () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => controller.abort(), 90000);
+  };
+  keepAlive();
+  try {
+    const response = await fetch(url, {...options, signal: controller.signal});
+    if (!response.ok) return response;
+    // An idle timeout allows a large voice dictionary to finish on a slow connection.
+    const body = response.clone();
+    const reader = body.body?.getReader();
+    if (reader) {
+      for (;;) {
+        const {done} = await reader.read();
+        if (done) break;
+        keepAlive();
+      }
+    } else await body.arrayBuffer();
+    return response;
+  } catch (error) {
+    if (error.name === 'AbortError') throw new Error('通信が止まりました。接続を確認して再試行してください。保存済みの版は引き続き利用できます。');
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function verifiedResponse(file, url) {
-  const response = await fetch(url, {cache: 'reload'});
+  const response = await timedFetch(url, {cache: 'reload', redirect: 'error'});
   if (!response.ok || response.redirected) throw new Error('取得できませんでした。 ' + file.path);
   const bytes = await response.clone().arrayBuffer();
+  if (bytes.byteLength !== file.bytes) throw new Error('配信中のファイルが更新されています。少し待って再試行してください。');
   const digest = await crypto.subtle.digest('SHA-256', bytes);
   const hex = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
   if (hex !== file.sha256) throw new Error('配信中のファイルが更新されています。少し待って再試行してください。');
@@ -42,13 +83,19 @@ async function verifiedResponse(file, url) {
 
 async function stage(manifest, full, send = () => {}) {
   const prior = await state();
-  if (prior?.revision === manifest.revision && (prior.full || !full)) return prior;
-  const name = prefix + manifest.revision + (full ? ':full' : ':base');
-  const target = await caches.open(name);
   const priorCache = prior ? await caches.open(prior.cache) : null;
   const files = manifest.files.filter((file) => full || file.core);
+  if (prior?.revision === manifest.revision && (prior.full || !full)) {
+    const intact = await Promise.all(files.map((file) => priorCache.match(new URL(file.path, scope).href)));
+    if (intact.every(Boolean)) return prior;
+  }
+  // Never overwrite the active snapshot, including repairs of an identical revision.
+  const nonce = Array.from(crypto.getRandomValues(new Uint32Array(4)), (number) => number.toString(16)).join('-');
+  const name = prefix + manifest.revision + (full ? ':full:' : ':base:') + nonce;
+  const target = await caches.open(name);
   const reusable = prior ? new Map(Object.entries(prior.hashes || {})) : new Map();
   let done = 0;
+  const heartbeat = setInterval(() => send({kind: 'progress', done, total: files.length}), 20000);
   try {
     // Limit parallel requests and retain an earlier complete snapshot if any transfer fails.
     for (let offset = 0; offset < files.length; offset += 5) {
@@ -74,6 +121,8 @@ async function stage(manifest, full, send = () => {}) {
   } catch (error) {
     await caches.delete(name);
     throw error;
+  } finally {
+    clearInterval(heartbeat);
   }
 }
 
@@ -87,7 +136,10 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('message', (event) => {
   if (!event.ports[0] || !['status', 'prepare', 'save', 'update'].includes(event.data?.kind)) return;
-  const send = (message) => event.ports[0].postMessage(message);
+    const send = (message) => {
+      // Closing a tab or timing out its MessagePort must not roll back a valid download.
+      try { event.ports[0].postMessage(message); } catch {}
+    };
   event.waitUntil(enqueue(async () => {
     const prior = await state();
     const kind = event.data.kind;

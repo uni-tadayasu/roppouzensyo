@@ -27,12 +27,18 @@ async function setupOffline() {
     function send(kind) {
       return new Promise((resolve, reject) => {
         const channel = new MessageChannel();
-        const timeout = setTimeout(() => {
-          channel.port1.close();
-          reject(new Error('応答がありません。通信環境を確認して再試行してください。'));
-        }, 240000);
+        let timeout;
+        const keepAlive = () => {
+          clearTimeout(timeout);
+          timeout = setTimeout(() => {
+            channel.port1.close();
+            reject(new Error('応答がありません。通信環境を確認して再試行してください。'));
+          }, 240000);
+        };
+        keepAlive();
         channel.port1.onmessage = ({data}) => {
           if (data.kind === 'progress') {
+            keepAlive();
             show('保存中 ' + data.done + ' / ' + data.total);
             return;
           }
@@ -41,7 +47,14 @@ async function setupOffline() {
           if (data.kind === 'error') reject(new Error(data.message));
           else resolve(data);
         };
-        registration.active.postMessage({kind}, [channel.port2]);
+        const worker = registration.active;
+        if (!worker) {
+          clearTimeout(timeout);
+          channel.port1.close();
+          reject(new Error('オフライン機能を準備中です。少し待って再試行してください。'));
+          return;
+        }
+        worker.postMessage({kind}, [channel.port2]);
       });
     }
 
@@ -54,7 +67,7 @@ async function setupOffline() {
       if (messages[kind]) show(messages[kind]);
       try {
         const result = await send(kind);
-        if (kind === 'update' && result.changed) {
+        if (result.changed) {
           show('更新を適用しました。画面を再読み込みします。');
           window.location.reload();
           return;
