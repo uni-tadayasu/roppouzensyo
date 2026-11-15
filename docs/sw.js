@@ -12,6 +12,15 @@ function enqueue(action) {
   return result;
 }
 
+function errorMessage(error) {
+  if (error?.name === 'QuotaExceededError' || /quota.*exceed|exceed.*quota/i.test(error?.message || '')) {
+    const preserved = activeState ? '保存済みの版は引き続き利用できます。' : '';
+    return 'ブラウザの保存容量が不足したため、オフライン保存を完了できませんでした。' + preserved +
+      '端末の空き容量を増やすか、通常モードの別ブラウザで再試行してください。';
+  }
+  return error?.message || '処理に失敗しました。';
+}
+
 async function state() {
   if (activeState !== undefined) return activeState;
   const cache = await caches.open(metadataCache);
@@ -154,7 +163,7 @@ self.addEventListener('message', (event) => {
     // Keep one previous cache available to any requests already using that snapshot.
     const keep = new Set([metadataCache, next?.cache, prior?.cache]);
     await Promise.all((await caches.keys()).filter((name) => name.startsWith(prefix) && !keep.has(name)).map((name) => caches.delete(name)));
-  }).catch((error) => send({kind: 'error', message: error.message || '処理に失敗しました。'})));
+  }).catch((error) => send({kind: 'error', message: errorMessage(error)})));
 });
 
 self.addEventListener('fetch', (event) => {

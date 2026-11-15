@@ -16,13 +16,17 @@ function harness() {
   const requests = [];
   let manifest;
   let online = true;
+  let writeFailure;
   const caches = {
     async open(name) {
       if (!stores.has(name)) stores.set(name, new Map());
       const entries = stores.get(name);
       return {
         async match(key) {return entries.get(String(key))?.clone();},
-        async put(key, value) {entries.set(String(key), value.clone());}
+        async put(key, value) {
+          if (writeFailure?.matches(name, String(key))) throw writeFailure.error;
+          entries.set(String(key), value.clone());
+        }
       };
     },
     async keys() {return [...stores.keys()];},
@@ -45,6 +49,7 @@ function harness() {
   return {
     stores, resources, requests,
     offline() {online = false;},
+    failWrites(error, matches) {writeFailure = {error, matches};},
     release(revision, files) {
       manifest = {revision, date: '2026-11-15', files: files.map(([path, body, core]) => descriptor(path, body, core))};
       for (const [path, body] of files) resources.set(scope + path, body);
@@ -107,6 +112,28 @@ test('a missing file in the same revision is repaired without destroying the sav
   assert.deepEqual(app.requests, [scope + 'offline-manifest.json', scope + 'styles.css']);
   app.offline();
   assert.equal(await (await app.read('styles.css')).text(), 'style');
+});
+
+test('quota failures explain storage limits in Japanese and retain the complete prior snapshot', async () => {
+  for (const error of [new DOMException('Quota exceeded.', 'QuotaExceededError'), new Error('Quota exceeded.')]) {
+    for (const failedPath of ['tts/voice.bin', '__offline_state__']) {
+      const app = harness();
+      app.release('one', [['index.html', 'reader'], ['tts/voice.bin', 'voice', false]]);
+      assert.equal((await app.message('prepare')).full, false);
+      const originalCaches = [...app.stores.keys()];
+      app.failWrites(error, (_name, key) => key === scope + failedPath);
+      const result = await app.message('save');
+      assert.equal(result.kind, 'error');
+      assert.match(result.message, /保存容量が不足/);
+      assert.match(result.message, /保存済みの版は引き続き利用できます/);
+      assert.doesNotMatch(result.message, /Quota/);
+      assert.deepEqual([...app.stores.keys()], originalCaches, 'only the incomplete target is removed');
+      assert.equal((await app.message('status')).full, false);
+      app.offline();
+      assert.equal(await (await app.read('')).text(), 'reader');
+      assert.equal((await app.read('tts/voice.bin')).status, 503);
+    }
+  }
 });
 
 test('invalid manifests cannot replace a good snapshot or fetch untrusted paths', async () => {
