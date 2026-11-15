@@ -291,7 +291,7 @@ function numberValue(raw) {
 function parseReference(text) {
   const separated = normalized(text).replace(/^第?(\d+)(?:[-_](\d+))+$/u, match => match.replace(/^第/u, '').replace(/[-_]/gu, 'の'));
   if (/^\d+(?:の\d+)*$/u.test(separated)) {
-    return { article: separated.replace(/の/gu, '_'), part: '' };
+    return { article: separated.split('の').map(numberValue).join('_'), part: '' };
   }
   const match = separated.match(parseFullReference);
   if (!match) return null;
@@ -764,6 +764,16 @@ async function loadCases(law, article) {
   }
 }
 
+function setRouteStatus(status, message = '') {
+  const grid = document.querySelector('.reader-grid');
+  grid.hidden = status === 'failed';
+  grid.inert = status !== 'ready';
+  grid.setAttribute('aria-busy', String(status === 'loading'));
+  find('route-status').hidden = status === 'ready';
+  find('route-message').textContent = message;
+  find('route-retry').hidden = status !== 'failed';
+}
+
 async function showRoute(moveFocus = false, automatic = false) {
   if (!state.catalog) return;
   const request = ++state.routeRequest;
@@ -771,6 +781,7 @@ async function showRoute(moveFocus = false, automatic = false) {
   const meta = state.catalog.laws.find(law => law.id === route.lawId) ||
     state.catalog.laws.find(law => law.id === 'constitution') || state.catalog.laws[0];
   if (!meta) return;
+  setRouteStatus('loading', `${meta.title}を読み込み中です。`);
   try {
     const law = await getLaw(meta.id);
     if (request !== state.routeRequest) return;
@@ -824,6 +835,8 @@ async function showRoute(moveFocus = false, automatic = false) {
       renderSummary(prefix);
       loadCases(law, article);
     }
+    setRouteStatus('ready');
+    report('');
     recordReading(validPart);
     if (!requested) report(`${law.title}に指定の条番号がありません。${article.title}を表示しました。`);
     else if (route.partId) {
@@ -846,13 +859,27 @@ async function showRoute(moveFocus = false, automatic = false) {
     }
   } catch (error) {
     console.error(error);
-    if (request === state.routeRequest) report('法令データを読み込めませんでした。オンラインで再読み込みしてください。');
+    if (request !== state.routeRequest) return;
+    stopArticlePlayback();
+    setRouteStatus('failed', `${meta.title}を読み込めませんでした。通信状態を確認して、もう一度読み込んでください。`);
+    if (moveFocus) find('route-message').focus({ preventScroll: true });
   }
 }
 
 function markPartActive(id) {
   for (const part of find('article-parts').querySelectorAll('.is-selected')) part.classList.remove('is-selected');
   if (id) document.getElementById(`part-${id}`)?.classList.add('is-selected');
+}
+
+function searchReference(query) {
+  const words = query.trim().split(/\s+/u);
+  // Prefer the longest complete reference, so spaced paragraph/item numbers
+  // belong to the destination and the remaining words filter its contents.
+  for (let end = words.length; end > 0; end--) {
+    const reference = parseReference(words.slice(0, end).join(''));
+    if (reference) return { reference, keywords: words.slice(end).join(' ') };
+  }
+  return { reference: null, keywords: query };
 }
 
 function searchData(query, laws) {
@@ -863,7 +890,6 @@ function searchData(query, laws) {
   const alias = [...namedLaws.keys()].find(name => compact.startsWith(name));
   const aliasLaw = alias ? state.catalog.laws.find(law => law.id === namedLaws.get(alias)) : null;
   const typedLaw = qualified || aliasLaw;
-  const typedRef = parseReference(typedLaw ? compact.slice(qualified ? normalized(qualified.title).length : alias.length) : compact);
   const results = [];
   if (exactLaw) {
     const law = laws.find(entry => entry.id === exactLaw.id);
@@ -873,24 +899,23 @@ function searchData(query, laws) {
   const lawPrefix = qualified ? normalized(qualified.title) : alias;
   const searchable = typedLaw ? query.normalize('NFKC').trim().replace(
     new RegExp(`^${[...lawPrefix].map(escapeRegex).join('[\\s・･]*')}`, 'u'), '') : query;
-  const keywords = searchable.trim().normalize('NFKC').toLowerCase().split(/\s+/u).map(normalized).filter(Boolean);
+  const { reference: typedRef, keywords: keywordQuery } = searchReference(searchable);
+  const keywords = keywordQuery.trim().normalize('NFKC').toLowerCase().split(/\s+/u).map(normalized).filter(Boolean);
   for (const law of laws) {
     if (typedLaw && law.id !== typedLaw.id) continue;
     const target = typedRef ? resolveArticle(law, typedRef.article) : null;
     for (const article of law.articles) {
-      if (typedRef) {
-        if (article === target) {
-          const part = article.parts.find(item => item.id === typedRef.part);
-          if (!typedRef.part || part) results.push({ law, article, part, sample: part?.text || article.parts[0]?.text || '' });
-        }
-        continue;
-      }
+      if (typedRef && article !== target) continue;
+      const requestedPart = typedRef?.part ? article.parts.find(item => item.id === typedRef.part) : null;
+      if (typedRef?.part && !requestedPart) continue;
+      const parts = requestedPart ? article.parts.filter(item =>
+        item.id === requestedPart.id || item.id.startsWith(`${requestedPart.id}.`)) : article.parts;
       const intro = normalized(`${law.title}${article.title}${article.caption}${article.chapter}`);
-      const matches = article.parts.map(item => normalized(item.text));
+      const matches = parts.map(item => normalized(item.text));
       if (!keywords.every(word => intro.includes(word) || matches.some(text => text.includes(word)))) continue;
       const index = matches.findIndex(text => keywords.some(word => text.includes(word)));
-      const part = article.parts[index];
-      results.push({ law, article, part, sample: part?.text || article.parts[0]?.text || '', query: searchable });
+      const part = requestedPart || parts[index];
+      results.push({ law, article, part, sample: parts[index]?.text || part?.text || article.parts[0]?.text || '', query: keywordQuery });
     }
   }
   if (typedRef && !typedLaw) results.sort((first, second) => Number(second.law.id === state.law?.id) - Number(first.law.id === state.law?.id));
@@ -1142,6 +1167,7 @@ function wireMarkers() {
 
 function setBindings() {
   bindSpeechPreferences();
+  find('route-retry').addEventListener('click', () => showRoute(true));
   find('bookmark-article')?.addEventListener('click', () => {
     const entry = currentStudyEntry();
     if (!entry) return;

@@ -66,6 +66,10 @@ p, h1, h2, h3 { overflow-wrap: anywhere; }
 
 .body-area { padding-block: 25px 48px; min-height: 48vh; }
 .reader-grid { display: grid; grid-template-columns: minmax(166px, .86fr) minmax(0, 3.05fr) minmax(226px, 1.15fr); align-items: start; gap: 18px; }
+.route-status { padding: 16px 20px; margin-bottom: 18px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); }
+.route-status p { margin: 0; }
+.route-status .control { margin-top: 10px; }
+.reader-grid[aria-busy="true"] { opacity: .55; }
 .toc-panel, .reader-panel, .reference-card, .search-results { min-width: 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); box-shadow: 0 3px 8px #263b2b08; }
 .toc-panel { position: sticky; top: 12px; }
 .toc-heading { display: flex; align-items: center; gap: 8px; min-height: 52px; margin: 0; padding: 11px 13px; border-bottom: 1px solid #e4dccc; color: #263d52; font-weight: 750; font-size: .87rem; }

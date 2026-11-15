@@ -110,6 +110,10 @@
 
   <main class="page-width body-area">
     <section id="search-results" class="search-results" aria-label="検索結果" aria-live="polite" hidden></section>
+    <div id="route-status" class="route-status" hidden>
+      <p id="route-message" role="status" aria-live="polite" tabindex="-1"></p>
+      <button id="route-retry" class="control" type="button" hidden>もう一度読み込む</button>
+    </div>
     <div class="reader-grid">
       <aside class="toc-panel" aria-labelledby="toc-title">
         <div class="toc-details">
