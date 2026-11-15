@@ -150,7 +150,7 @@ def build(output, site_url):
     page = re.sub(r'(<meta (?:property="og:image"|name="twitter:image") content=")[^"]*(">)',
                   lambda m: m[1] + ES(base + 'assets/og.png' if base else 'assets/og.png') + m[2], page)
     if base:
-        structured = json.dumps({'@context': 'https://schema.org', '@type': 'WebSite', 'name': '六法書架', 'url': base, 'inLanguage': 'ja', 'description': '基本六法の原文・解説・関連判例を、検索と朗読で参照する法令書庫。'}, ensure_ascii=False).replace('<', r'<')
+        structured = json.dumps({'@context': 'https://schema.org', '@type': 'WebSite', 'name': '六法書架', 'url': base, 'inLanguage': 'ja', 'description': '基本六法の原文・解説・関連判例を、検索と朗読で参照する法令書庫。'}, ensure_ascii=False).replace('<', chr(92) + 'u003c')
         block = f'{index_start}\n<link rel="canonical" href="{ES(base)}">\n<meta property="og:url" content="{ES(base)}">\n<script type="application/ld+json">{structured}</script>\n{index_end}\n'
         page = page.replace('</head>', block + '</head>', 1)
         sitemap = ET.Element('urlset', {'xmlns': 'http://www.sitemaps.org/schemas/sitemap/0.9'})
